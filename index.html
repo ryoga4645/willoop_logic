@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Willoop 診断・マッチング 総合Webポータル</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans JP', sans-serif;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.4); opacity: 0.2; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-pin {
+      animation: pulse-ring 2.5s infinite ease-in-out;
+    }
+    .pin-transition {
+      transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen">
+
+  <!-- グローバルナビゲーションバー -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/20 text-white font-black text-lg">
+          W
+        </div>
+        <div>
+          <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Willoop</span>
+          <span class="text-xs text-slate-400 font-medium ml-1.5 hidden sm:inline">Culture & Personality Intelligence</span>
+        </div>
+      </div>
+
+      <!-- 受検者切り替えセレクター -->
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-semibold text-slate-500 hidden md:inline">受検者:</span>
+        <select id="user-select" onchange="onSelectUserChange(this.value)" class="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold py-2 px-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer">
+        </select>
+      </div>
+    </div>
+
+    <!-- メインビュー切り替えタブバー -->
+    <div class="bg-white border-t border-slate-100 shadow-inner">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex overflow-x-auto custom-scroll gap-2 py-2">
+        <button onclick="switchView('culture-map')" id="tab-btn-culture-map" class="view-tab-btn px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all flex items-center gap-2 bg-blue-600 text-white shadow-sm shadow-blue-500/20">
+          <span>🗺️</span> 1. カルチャー重心マップ (新マトリクス)
+        </button>
+        <button onclick="switchView('student-diagnosis')" id="tab-btn-student-diagnosis" class="view-tab-btn px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all flex items-center gap-2 bg-slate-100 text-slate-600 hover:bg-slate-200">
+          <span>🎓</span> 2. 学生マイページ 診断結果
+        </button>
+        <button onclick="switchView('company-match')" id="tab-btn-company-match" class="view-tab-btn px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all flex items-center gap-2 bg-slate-100 text-slate-600 hover:bg-slate-200">
+          <span>🏢</span> 3. 企業マイページ 候補者推薦
+        </button>
+        <button onclick="switchView('student-match')" id="tab-btn-student-match" class="view-tab-btn px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all flex items-center gap-2 bg-slate-100 text-slate-600 hover:bg-slate-200">
+          <span>🤝</span> 4. 学生マイページ 企業マッチ理由
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ領域 -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- 受検者プロファイルヘッダーカード -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex items-start sm:items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xl shrink-0">
+          👤
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span id="profile-user-id" class="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">candidate:26</span>
+            <span id="profile-user-attr" class="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 border border-blue-200">学生・求職者</span>
+            <span id="profile-cluster-badge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200">推進タイプ</span>
+          </div>
+          <h2 id="profile-full-type" class="text-lg font-extrabold text-slate-900 mt-1">周囲を牽引し構想を現実する推進タイプ</h2>
+        </div>
+      </div>
+
+      <!-- 4特性偏差値バッジ -->
+      <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div class="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-center">
+          <span class="text-[10px] text-slate-400 font-semibold block">社交性</span>
+          <span id="badge-t-soc" class="text-sm font-extrabold text-slate-800">57.8</span>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-center">
+          <span class="text-[10px] text-slate-400 font-semibold block">好奇心</span>
+          <span id="badge-t-cur" class="text-sm font-extrabold text-slate-800">67.7</span>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-center">
+          <span class="text-[10px] text-slate-400 font-semibold block">不安耐性</span>
+          <span id="badge-t-str" class="text-sm font-extrabold text-slate-800">66.3</span>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-center">
+          <span class="text-[10px] text-slate-400 font-semibold block">着実性</span>
+          <span id="badge-t-std" class="text-sm font-extrabold text-slate-800">46.2</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ビュー1: カルチャー・ポジショニングマップ -->
+    <!-- ========================================== -->
+    <div id="view-culture-map" class="view-section grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- 2軸SVGマップ（左2カラム） -->
+      <div class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+        <div class="flex items-center justify-between text-xs">
+          <div>
+            <h3 class="font-extrabold text-sm text-slate-900">🧭 カルチャー重心ポジショニングマップ</h3>
+            <span class="text-slate-400 text-xs">重視バリューから算出した「あなたのカルチャー現在地」</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="flex items-center gap-1.5 font-bold text-blue-600">
+              <span class="w-3 h-3 rounded-full bg-blue-500 inline-block shadow-sm"></span> あなた (YOU)
+            </span>
+            <span class="flex items-center gap-1.5 font-bold text-emerald-600">
+              <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-sm"></span> 企業 (For Two)
+            </span>
+          </div>
+        </div>
+
+        <!-- 2軸SVGキャンバス -->
+        <div class="relative w-full aspect-square max-h-[520px] bg-slate-50/70 rounded-2xl border border-slate-200 overflow-hidden">
+          <svg viewBox="-105 -105 210 210" class="w-full h-full select-none">
+            
+            <!-- 4象限ゾーンカラー -->
+            <rect x="-105" y="-105" width="105" height="105" fill="#ea580c" fill-opacity="0.05" />
+            <rect x="0" y="-105" width="105" height="105" fill="#8b5cf6" fill-opacity="0.05" />
+            <rect x="0" y="0" width="105" height="105" fill="#10b981" fill-opacity="0.05" />
+            <rect x="-105" y="0" width="105" height="105" fill="#64748b" fill-opacity="0.04" />
+
+            <!-- 十字ガイド軸 -->
+            <line x1="-100" y1="0" x2="100" y2="0" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="3,3"/>
+            <line x1="0" y1="-100" x2="0" y2="100" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="3,3"/>
+
+            <!-- 象限背景ラベル -->
+            <g opacity="0.65">
+              <text x="-52" y="-55" text-anchor="middle" font-size="7" font-weight="bold" fill="#ea580c">🚀 革新・成果</text>
+              <text x="-52" y="-46" text-anchor="middle" font-size="4.5" fill="#64748b">変革・スピード・突破</text>
+              
+              <text x="52" y="-55" text-anchor="middle" font-size="7" font-weight="bold" fill="#8b5cf6">🦅 自律・柔軟</text>
+              <text x="52" y="-46" text-anchor="middle" font-size="4.5" fill="#64748b">自由・本質・心理的安全</text>
+
+              <text x="52" y="48" text-anchor="middle" font-size="7" font-weight="bold" fill="#10b981">🤝 協調・共感</text>
+              <text x="52" y="57" text-anchor="middle" font-size="4.5" fill="#64748b">感謝・丁寧・人の尊重</text>
+
+              <text x="-52" y="48" text-anchor="middle" font-size="7" font-weight="bold" fill="#475569">🛡️ 安定・品質</text>
+              <text x="-52" y="57" text-anchor="middle" font-size="4.5" fill="#64748b">計画性・秩序・確実性</text>
+            </g>
+
+            <!-- 軸先端ラベル -->
+            <text x="0" y="-93" text-anchor="middle" font-size="5" font-weight="bold" fill="#1e293b">▲ 挑戦・変革・柔軟</text>
+            <text x="0" y="97" text-anchor="middle" font-size="5" font-weight="bold" fill="#1e293b">▼ 着実・安定・規律</text>
+            <text x="-95" y="2" text-anchor="start" font-size="5" font-weight="bold" fill="#1e293b">◀ 成果・タスク</text>
+            <text x="95" y="2" text-anchor="end" font-size="5" font-weight="bold" fill="#1e293b">人・チーム ▶</text>
+
+            <!-- 企業とユーザーの距離コネクター線 -->
+            <line id="map-match-line" x1="0" y1="0" x2="0" y2="0" stroke="#3b82f6" stroke-width="1.8" stroke-dasharray="3,3" opacity="0.6"/>
+
+            <!-- 企業ピン（For Two: X=+55, Y=+10） -->
+            <g id="map-company-pin" transform="translate(55, -10)" class="pin-transition cursor-pointer">
+              <circle r="12" fill="#10b981" fill-opacity="0.15" />
+              <circle r="5" fill="#10b981" stroke="#ffffff" stroke-width="1.5" />
+              <rect x="-24" y="-22" width="48" height="12" rx="4" fill="#ffffff" stroke="#10b981" stroke-width="1"/>
+              <text y="-14" text-anchor="middle" font-size="5" font-weight="bold" fill="#0f172a">🏢 For Two</text>
+            </g>
+
+            <!-- ユーザーピン（動的アニメーション） -->
+            <g id="map-user-pin" transform="translate(28, -48)" class="pin-transition cursor-pointer">
+              <circle r="16" fill="#3b82f6" class="pulse-pin" />
+              <circle r="6" fill="#3b82f6" stroke="#ffffff" stroke-width="2" />
+              <rect x="-24" y="-24" width="48" height="13" rx="4" fill="#2563eb" />
+              <text y="-15" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#ffffff">YOU (あなた)</text>
+            </g>
+
+          </svg>
+        </div>
+      </div>
+
+      <!-- 右側: カルチャータイプ判定 & マッチング解説 -->
+      <div class="space-y-4">
+        
+        <!-- カルチャータイプカード -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">カルチャー判定</span>
+            <span id="map-coords-badge" class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-100 text-slate-700">
+              (X: 28, Y: 48)
+            </span>
+          </div>
+
+          <div>
+            <h3 id="map-type-title" class="text-lg font-black text-slate-900">🦅 自律・柔軟タイプ</h3>
+            <p id="map-quadrant-desc" class="text-xs text-slate-500 mt-0.5">右上象限（挑戦・柔軟 × 人・チーム寄り）</p>
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 space-y-1.5">
+            <span class="text-[11px] font-bold text-slate-400">重視バリュー上位:</span>
+            <div id="map-top-values" class="flex flex-wrap gap-1.5"></div>
+          </div>
+        </div>
+
+        <!-- 企業との親和性カード -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">For Two との相性</span>
+            <span id="map-fit-badge" class="px-2.5 py-0.5 rounded text-xs font-extrabold bg-blue-50 text-blue-600 border border-blue-200">
+              補完フィット
+            </span>
+          </div>
+
+          <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-700">カルチャー距離</span>
+              <span id="map-distance-val" class="text-xs font-mono font-bold text-blue-600">43.8</span>
+            </div>
+            <p id="map-synergy-text" class="text-xs text-slate-600 leading-relaxed pt-1 border-t border-slate-200/60">
+              人を大切にする根底の想い（心身の充足）を共有しながら、穏やかなチームに自律的な突破力をもたらす理想的な補完関係
+            </p>
+          </div>
+
+          <div class="text-[11px] text-slate-500 leading-relaxed">
+            🏢 **株式会社For Twoのカルチャー**: 協調・関係 × ウェルビーイング重視（X: 55, Y: 10）。温かい社風にあなたの個性がどう機能するかを分析しています。
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ビュー2: 学生マイページ 診断結果 -->
+    <!-- ========================================== -->
+    <div id="view-student-diagnosis" class="view-section hidden space-y-6">
+      
+      <!-- サブタブ（パーソナリティ / バリュー） -->
+      <div class="flex border-b border-slate-200 gap-4">
+        <button onclick="switchDiagSubTab('p')" id="subtab-btn-p" class="pb-3 text-sm font-extrabold border-b-2 border-blue-600 text-blue-600 transition-all flex items-center gap-2">
+          <span>🧠</span> あなたのパーソナリティ（行動様式）
+        </button>
+        <button onclick="switchDiagSubTab('v')" id="subtab-btn-v" class="pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-all flex items-center gap-2">
+          <span>💎</span> あなたのバリュー（大切にする価値観）
+        </button>
+      </div>
+
+      <!-- パーソナリティタブ内容 -->
+      <div id="diag-sub-p" class="space-y-6">
+        
+        <!-- 概要カード -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+          <div>
+            <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">タイプ概要</span>
+            <h3 id="diag-p-type-name" class="text-xl font-extrabold text-slate-900 mt-1">周囲を牽引し構想を現実する推進タイプ</h3>
+            <p id="diag-p-summary" class="text-sm text-slate-600 mt-2 leading-relaxed"></p>
+          </div>
+
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <h4 class="text-xs font-bold text-slate-700 uppercase mb-1">このタイプの中での個性・立ち位置</h4>
+            <p id="diag-p-unique" class="text-xs text-slate-600 leading-relaxed"></p>
+          </div>
+        </div>
+
+        <!-- 強み ＆ これからの向き合い方 2カラム -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- 強み3点 -->
+          <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+            <h4 class="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+              <span class="text-amber-500">★</span> あなたの強み（3点）
+            </h4>
+            <div id="diag-p-strengths" class="space-y-3"></div>
+          </div>
+
+          <!-- これからの向き合い方2点 -->
+          <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+            <h4 class="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+              <span class="text-blue-500">💡</span> これからの向き合い方（2点）
+            </h4>
+            <div id="diag-p-future" class="space-y-3"></div>
+          </div>
+
+        </div>
+
+        <!-- あなたが活きる環境3点 -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+          <h4 class="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+            <span class="text-emerald-500">🚩</span> あなたが活きる環境（任され方・チーム構成）
+          </h4>
+          <div id="diag-p-env" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+        </div>
+
+      </div>
+
+      <!-- バリュータブ内容 -->
+      <div id="diag-sub-v" class="hidden space-y-6">
+        
+        <!-- 最上位バリュー4枚カード -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+          <div>
+            <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">コアバリュー</span>
+            <h3 class="text-lg font-extrabold text-slate-900 mt-1">あなたが最も大切にする価値観（TOP 4）</h3>
+            <p id="diag-v-summary" class="text-sm text-slate-600 mt-1.5 leading-relaxed"></p>
+          </div>
+
+          <div id="diag-v-top4-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2"></div>
+        </div>
+
+        <!-- 大切にしていること要約文 -->
+        <div class="bg-indigo-50/60 border border-indigo-200/80 rounded-2xl p-5 shadow-sm space-y-1.5">
+          <span class="text-xs font-bold text-indigo-700 flex items-center gap-1.5">
+            <span>✨</span> あなたが大切にしていること（要約）
+          </span>
+          <p id="diag-v-core-value" class="text-xs text-slate-700 leading-relaxed font-medium"></p>
+        </div>
+
+        <!-- あなたが活きる企業・カルチャー3点 -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+          <h4 class="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+            <span class="text-emerald-500">🚩</span> あなたが活きる企業（理念・評価風土）
+          </h4>
+          <div id="diag-v-env" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ビュー3: 企業マイページ 候補者推薦カード -->
+    <!-- ========================================== -->
+    <div id="view-company-match" class="view-section hidden space-y-6">
+      
+      <!-- 推薦ハイライトバナー -->
+      <div class="bg-gradient-to-r from-blue-900 to-indigo-900 text-white rounded-2xl p-6 shadow-md space-y-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-blue-300">💡 推薦ハイライト（企業マイページ推薦枠）</span>
+        <h3 id="comp-headline" class="text-xl sm:text-2xl font-black tracking-tight leading-snug"></h3>
+        <p class="text-xs text-blue-200/90 pt-1">対象企業: 株式会社For Two（保育・育児IT）への推薦理由</p>
+      </div>
+
+      <!-- 3大評価項目グリッド -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- 1. バリュー共鳴 -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3 flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span class="font-extrabold text-sm text-slate-900">1. 価値観の共鳴ポイント</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600">バリュー適合</span>
+            </div>
+            <div class="text-xs font-bold text-slate-500">
+              共通バリュー: <span id="comp-overlap-val" class="text-blue-600"></span>
+            </div>
+            <p id="comp-overlap-exp" class="text-xs text-slate-600 leading-relaxed"></p>
+          </div>
+          <div class="text-[10px] text-slate-400 border-t border-slate-100 pt-2">理念やパーパスへの共感度合い</div>
+        </div>
+
+        <!-- 2. 現場・チーム親和性（案2形式） -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3 flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span class="font-extrabold text-sm text-slate-900">2. 現場・チームとの親和性</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-600">パーソナリティ適合</span>
+            </div>
+            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800" id="comp-style-text">
+            </div>
+            <p id="comp-team-exp" class="text-xs text-slate-600 leading-relaxed"></p>
+          </div>
+          <div class="text-[10px] text-slate-400 border-t border-slate-100 pt-2">★はマッチングの要となる注目特性</div>
+        </div>
+
+        <!-- 3. マネジメント処方箋 -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3 flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span class="font-extrabold text-sm text-slate-900">3. 活躍を引き出す関わり方</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-600">育成処方箋</span>
+            </div>
+            <p id="comp-onboarding" class="text-xs text-slate-600 leading-relaxed"></p>
+            <div class="space-y-2 pt-2 border-t border-slate-100">
+              <span class="text-[11px] font-bold text-slate-700 block">おすすめ面接質問2選:</span>
+              <div id="comp-questions-list" class="space-y-2"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ビュー4: 学生マイページ 企業マッチ理由 -->
+    <!-- ========================================== -->
+    <div id="view-student-match" class="view-section hidden space-y-6">
+      
+      <!-- おすすめハイライトバナー -->
+      <div class="bg-gradient-to-r from-indigo-800 to-purple-800 text-white rounded-2xl p-6 shadow-md space-y-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-purple-200">💡 おすすめハイライト（学生向け求人詳細枠）</span>
+        <h3 id="stud-headline" class="text-xl sm:text-2xl font-black tracking-tight leading-snug"></h3>
+        <p class="text-xs text-purple-200/90 pt-1">対象企業: 株式会社For Two（保育・育児IT）があなたに合う理由</p>
+      </div>
+
+      <!-- 3大解説グリッド -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- 1. カルチャーフィット -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3 flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span class="font-extrabold text-sm text-slate-900">1. 価値観の共鳴ポイント</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-50 text-purple-600">カルチャーフィット</span>
+            </div>
+            <div class="text-xs font-bold text-slate-500">
+              共通バリュー: <span id="stud-overlap-val" class="text-purple-600"></span>
+            </div>
+            <p id="stud-culture-exp" class="text-xs text-slate-600 leading-relaxed"></p>
+          </div>
+          <div class="text-[10px] text-slate-400 border-t border-slate-100 pt-2">なぜこの会社で居心地良く働けるか</div>
+        </div>
+
+        <!-- 2. 強みが活きる現場 -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3 flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span class="font-extrabold text-sm text-slate-900">2. あなたの強みが活きる現場</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600">パーソナリティフィット</span>
+            </div>
+            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800" id="stud-role-title"></div>
+            <p id="stud-workplace-exp" class="text-xs text-slate-600 leading-relaxed"></p>
+          </div>
+          <div class="text-[10px] text-slate-400 border-t border-slate-100 pt-2">チーム内での立ち位置と活躍イメージ</div>
+        </div>
+
+        <!-- 3. 働きやすさ & 逆質問 -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3 flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span class="font-extrabold text-sm text-slate-900">3. 伸び伸び働ける環境</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-600">逆質問サポート</span>
+            </div>
+            <p id="stud-growth-tips" class="text-xs text-slate-600 leading-relaxed"></p>
+            <div class="space-y-2 pt-2 border-t border-slate-100">
+              <span class="text-[11px] font-bold text-slate-700 block">面談・面接でのおすすめ逆質問:</span>
+              <div id="stud-reverse-questions" class="space-y-2"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- フッター -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-400">
+    Willoop Diagnosis & Matching Engine • Generated from Production Prompts & Specifications
+  </footer>
+
+  <!-- スクリプト -->
+  <script>
+    const portalData = {"company": {"name": "株式会社For Two", "business": "保育・育児ITサービスの企画・開発・運営（家族向け連絡網・写真共有・業務支援SaaS）", "core_values": ["心身の充足", "人の尊重", "感謝", "丁寧さ", "質の高い対話"], "culture_memo": "心理的安全性が高く、お互いを思いやる家族的な温かい風土。一方で、新しい事業領域を切り拓く突破力を持った推進役を求めている。", "culture_coords": {"x": 55, "y": 10}, "culture_type": "🤝 協調・関係 × 🌱 ウェルビーイング重視型"}, "users": [{"no": 1, "id": "candidate:26", "user_type": "学生・求職者", "personality": {"type_name": "周囲を牽引し構想を現実する推進タイプ", "base_type": "推進タイプ", "t_scores": {"社交性": 57.8, "好奇心": 67.7, "不安耐性": 66.3, "着実性": 46.2}, "style": "推進タイプ（★社交性 57.8 / ★好奇心 67.7 / ★不安耐性 66.3 / 着実性 46.2）", "type_summary": "あなたの性格は、高い知的好奇心とブレない精神的タフネスを兼ね備え、新しい可能性を広い視野で切り拓きながらチームをリードしていく【推進タイプ】の傾向にあります。", "individual_uniqueness": "一般的な推進タイプに比べ、【好奇心（偏差値67.7）】と【不安耐性（偏差値66.3）】が極めて高く、プレッシャー下でも物怖じせず大局的な視点から次の一手を打ち続けられます。職場のチームにおいては、停滞した空気を打破し、新しい事業やプロジェクトの突破口を切り拓く「変革の牽引役（エンジン）」として重宝されます。", "strengths": [{"label": "逆境を突破する冷静なリーダーシップ", "text": "突発的なトラブルや高いプレッシャー下でも動揺せず、物事の本質を見抜いてチームを落ち着かせ、前進させる力があります。"}, {"label": "広い視野から描く構想力と探求心", "text": "目先の作業に埋没せず、全体最適や将来の可能性を捉え、新しいアプローチを意欲的に取り入れて形にできます。"}, {"label": "自然体で周囲と信頼を築く対人力", "text": "気負わずに自己を開示し、相手の意見を尊重しながら対話を通じて強固な協力体制を構築できます。"}], "future_orientation": [{"label": "細部の実務を担うパートナーとの連携", "text": "大局的な推進が得意な一方、細かな定型管理で息切れしやすいため、着実性の高いメンバーと組むことで最大の成果が出せます。"}, {"label": "優先順位の絞り込みと合意形成", "text": "興味の幅が広く次々とアイデアが湧くため、「いま最も注力すべき本質的ゴール」を明確にして周囲と共有する工夫が有効です。"}], "ideal_environments": [{"label": "目的だけ共有して進め方を任せてくれるチーム", "text": "細かな手順指示よりも「何を目指すか」という目的と裁量を渡されたときに、突破力と自律的な推進力が最大化します。"}, {"label": "変化が多くスピード感のある現場", "text": "状況が次々と変わる環境でも不安に呑まれにくいため、新規事業や成長フェーズのプロジェクトで持ち前の行動力が活きます。"}, {"label": "堅実なメンバーと役割分担できる体制", "text": "自らが先頭で切り拓き、細部を着実な仲間がフォローしてくれる補完関係のあるチームに身を置くと、成果が最も安定します。"}]}, "values": {"top": ["広い視野", "本質志向", "自己受容", "心身の充足"], "high": ["計画性", "目標達成"], "culture_coords": {"x": 28, "y": 48}, "culture_type": "🦅 自律・柔軟タイプ（本質志向・広い視野・自己受容）", "quadrant": "右上象限（挑戦・柔軟 × 人・チーム寄り）", "value_summary": "あなたのバリューの傾向は、【本質志向】と【広い視野】を最優先し、表面的な形式や小手先の手段にとらわれず、本質的な成果と自律的な進化を追求する【自律・本質追求志向】にあります。", "core_value": "あなたにとって大切なのは、表面的な形式や小手先のテクニックに惑わされず、物事の根本にある本質を見つめながら広い視野で挑戦していくこと。同時に、無理に背伸びをせず心身の調和を保ち、自然体で持続可能な成果を追求することなのです。そんなあなたが力を発揮しやすい会社の特徴は、次のとおりです。", "ideal_environments": [{"label": "目的意識が共有され本質的な議論ができる企業", "text": "前例踏襲や社内慣例にとらわれず、「そもそも何のためにやるのか」という本質的な価値提供を歓迎するフラットなカルチャーが合っています。"}, {"label": "個人の裁量と心身のゆとりが両立する風土", "text": "過度なマイクロマネジメントがなく、自己管理のもとで心身を充足させながら集中できる、自律を重んじる企業が最適です。"}, {"label": "形式よりも実質的な成果を正当に評価する組織", "text": "見せかけのパフォーマンスや社内政治ではなく、事業や顧客に対する本質的な貢献度をフェアに見てくれる環境でモチベーションが高まります。"}]}, "match_analysis": {"fit_type": "補完フィット（変革・推進役）", "culture_synergy": "人を大切にする根底の想い（心身の充足）を共有しながら、穏やかなチームに自律的な突破力をもたらす理想的な補完関係", "distance": 43.8}, "company_view": {"headline": "温かい理念に深く共鳴しながら、事業を一段上へ押し上げる推進エンジン", "value_resonance": {"overlap": "『心身の充足』『本質志向』", "explanation": "貴社が重んじる「心身の健康や幸福」という根本思想に深く共感しつつ、物事の根本を見つめる『本質志向』を持っています。表面的な作業にとどまらず「どうすれば利用者様とチームが本当に満たされるか」を本質から考えられるため、貴社の理念をより強固なサービス価値へと昇華させる原動力になります。"}, "team_affinity": {"style": "推進タイプ（★社交性 57.8 / ★好奇心 67.7 / ★不安耐性 66.3 / 着実性 46.2）", "explanation": "調和的で穏やかなメンバーが多い貴社において、物怖じせず大局観を持って前へ進める本学生は貴重な「推進役（補完フィット）」となります。チームの温かさを壊すことなく、新しい企画や事業展開の突破口を切り拓くポジティブな牽引役として機能します。"}, "management_tips": {"onboarding": "全体像（ゴール）と裁量を与え、定期的に対話の時間を設けることで最も伸びます。マイクロマネジメントではなく「目的と期待」を明確に伝えることがポイントです。", "questions": [{"q": "「物事に取り組む際、周囲を巻き込んで新しい挑戦や改善を形にした経験はありますか？」", "focus": "推進力と周囲への配慮（巻き込み方）のバランスを確認します。"}, {"q": "「心身のゆとりや充実感を保ちながら、高いパフォーマンスを出すために意識している工夫は何ですか？」", "focus": "『心身の充足』と『推進力』を実生活でどう調和させているかを確かめます。"}]}}, "student_view": {"headline": "あなたの挑戦心を受け止め、本質的な価値提供に熱中できる最高の舞台", "culture_fit": {"overlap": "『心身の充足』『本質志向』", "explanation": "あなたが大切にしている「本質的な価値の追求」と「心身の健康」は、同社の事業哲学そのものです。利益だけを追うのではなく「本当に家族のためになるか」を誠実に問う風土だからこそ、あなたの広い視野と信念がまっすぐに活かされます。"}, "workplace_fit": {"role": "新しい風を吹き込む推進リーダー", "explanation": "穏やかで支え合う社風だからこそ、あなたの旺盛な好奇心と推進力が頼もしい突破力として歓迎されます。「まずやってみよう」と前向きに旗を振ることで、チーム全体を一段上のステージへ導く中心人物になれます。"}, "growth_environment": {"tips": "裁量を持って自律的に動ける環境です。目的を共有した上で自由にアプローチを試行錯誤できます。", "reverse_questions": [{"q": "「現場のメンバーが新しいアイデアや改善提案を出す際、どのようなステップで実現まで進めていますか？」", "intent": "自分の提案性や推進力を活かせる風土かどうかを確かめる質問です。"}, {"q": "「チーム全体で『心身の充足』や健全な働き方を保つために、日常的に意識されている仕組みはありますか？」", "intent": "理念が現場の制度やカルチャーとして実態を伴っているかを確認する質問です。"}]}}}, {"no": 2, "id": "candidate:28", "user_type": "学生・求職者", "personality": {"type_name": "自由な発想で変化を楽しむ巻き込みタイプ", "base_type": "巻き込みタイプ", "t_scores": {"社交性": 56.2, "好奇心": 54.2, "不安耐性": 59.2, "着実性": 38.7}, "style": "巻き込みタイプ（★社交性 56.2 / 好奇心 54.2 / ★不安耐性 59.2 / ★着実性 38.7）", "type_summary": "あなたの性格は、温かい人間関係を土台にしながら、柔軟な発想と前向きなエネルギーで周囲を自然と巻き込んでいく【巻き込みタイプ】の傾向にあります。", "individual_uniqueness": "巻き込みタイプの中でも【不安耐性（偏差値59.2）】が高く、感情の波に左右されずに落ち着いて人と向き合える安心感を持っています。職場のチームにおいては、心理的安全性を高め、部署間の壁を取り払って仲間を前向きに鼓舞する「現場のムードメーカー・コミュニケーター」として活躍します。", "strengths": [{"label": "誰とでも打ち解ける共感的な対人力", "text": "相手の気持ちや職場の空気を敏感に察知し、相手を尊重した心地よい対話で強固な味方を増やせます。"}, {"label": "変化を恐れず場を明るくする発信力", "text": "新しい試みや急な状況の変化に対してもポジティブに捉え、チームのモチベーションを前向きに引き上げられます。"}, {"label": "プレッシャーに動じない穏やかな安定感", "text": "忙しい場面や不測の事態でも焦りを周囲に見せず、落ち着いた態度で周囲に心理的安全性を提供できます。"}], "future_orientation": [{"label": "緻密なスケジュール管理の仕組み化", "text": "直感や柔軟性を重視する分、細かな締切管理やルーティン作業はカレンダーやToDoツールで視覚化・自動化すると安心です。"}, {"label": "周囲の期待に応えすぎない自己境界", "text": "人を大切にするあまり頼まれごとを抱え込みやすいため、「自分ができる範囲」を冷静に見極めて伝える意識が大切です。"}], "ideal_environments": [{"label": "仲間とオープンに対話しながら進められるチーム", "text": "一人で黙々と作業するよりも、頻繁にコミュニケーションを交わし、アイデアを出し合いながら進められる環境で力が湧きます。"}, {"label": "挑戦を前向きに面白がってくれるカルチャー", "text": "新しい提案や試みを最初から否定せず、「まずやってみよう」と受け止めてくれる風通しの良い組織がベストマッチです。"}, {"label": "細部のチェックを互いに補い合える体制", "text": "発信や巻き込みに注力できる一方、タスクの期日管理などをチーム全体で仕組みとしてフォローしてくれる環境で最も安心できます。"}]}, "values": {"top": ["広い視野", "人の尊重", "一生懸命", "謙虚"], "high": ["自己受容", "心身の充足"], "culture_coords": {"x": 52, "y": 22}, "culture_type": "🤝 協調・共創タイプ（人の尊重・一生懸命・謙虚）", "quadrant": "右側（協調・関係 × ウェルビーイング）", "value_summary": "あなたのバリューの傾向は、【人の尊重】と【一生懸命】を最優先し、関わる人への敬意と情熱を持ちながら、周囲と誠実に向き合ってチームで前進する【協調・誠実志向】にあります。", "core_value": "あなたにとって大切なのは、どんなときも目の前の人を心から尊重し、謙虚な学びの姿勢を保ちながら、何事にも全力で一生懸命に取り組むこと。自分のエゴのためではなく、仲間やお客様の喜ぶ顔を原動力にして前へ進むことに深い幸福を感じるのです。そんなあなたが力を発揮しやすい会社の特徴は、次のとおりです。", "ideal_environments": [{"label": "感謝と思いやりのカルチャーが根付く企業", "text": "成果主義でギスギスした職場ではなく、日頃の貢献に感謝の言葉が飛び交い、お互いの人柄を尊重し合える温かい企業風土が合っています。"}, {"label": "理念やビジョンに全員が共感して熱量を注ぐ組織", "text": "打算や冷めた態度がなく、共通のパーパスに向かって全員がひたむきに一生懸命になれるチームで最高のパフォーマンスを発揮します。"}, {"label": "謙虚な学びと成長を応援してくれる風土", "text": "経験の浅い若手でも対等な仲間として尊重し、失敗を恐れず謙虚に挑戦し続けられる育成環境を持つ企業が最適です。"}]}, "match_analysis": {"fit_type": "完全同質フィット（理念と風土のパーフェクトシンクロ）", "culture_synergy": "企業の中心点（X:+55, Y:+10）と極めて近接。人を大切にする価値観が完全に一致し、初日から自然体で溶け込む理想的な関係", "distance": 12.4}, "company_view": {"headline": "人を思いやる純粋な熱意と謙虚さを持ち、現場を明るく活性化させるムードメーカー", "value_resonance": {"overlap": "『人の尊重』『一生懸命』『謙虚』", "explanation": "貴社のコアバリューである『人の尊重』を最上位に掲げ、謙虚な姿勢と一生懸命さを兼ね備えています。「関わる人の力になりたい」という利他的な情熱が根底にあるため、貴社の温かいカルチャーに一切の齟齬なく馴染み、長期的なエンゲージメントを発揮します。"}, "team_affinity": {"style": "巻き込みタイプ（★社交性 56.2 / 好奇心 54.2 / ★不安耐性 59.2 / ★着実性 38.7）", "explanation": "高い対人力と親しみやすさで、チームの心理的安全性を自然と高めてくれる存在です。育児支援サービス等で重要な「共感力と傾聴姿勢」を持ち合わせており、チーム内だけでなくユーザーや提携先との良好な関係づくりに即戦力として貢献します。"}, "management_tips": {"onboarding": "感情の共有や日々の対話を喜ぶタイプです。「あなたの明るい姿勢にチームが助けられている」とこまめに声掛けをし、認知的・情緒的な安心感を与えてください。", "questions": [{"q": "「これまでのチーム活動で、仲間を思いやりながら協力してやり切った出来事を教えてください。」", "focus": "『人の尊重』や『一生懸命』がチームプレイにどう活かされているかを掘り下げます。"}, {"q": "「意見がぶつかったり価値観が異なる相手と対話するとき、心がけていることは何ですか？」", "focus": "貴社が重視する『質の高い対話』の実践度合いを測ります。"}]}}, "student_view": {"headline": "人を想うあなたの優しさと一生懸命さが、心から愛され歓迎される場所", "culture_fit": {"overlap": "『人の尊重』『一生懸命』『謙虚』", "explanation": "あなたが最も大切にしている「人への尊重」と「謙虚な一生懸命さ」は、同社の存在意義そのものです。誰もが互いを敬い、感謝を言葉にする温かい社風のため、人間関係で無理をすることなく自分らしく輝けます。"}, "workplace_fit": {"role": "チームを笑顔でつなぐムードメーカー", "explanation": "あなたの親しみやすさと共感力は、育児に関わるユーザーや仲間にとって絶大な安心感となります。周囲と軽やかに対話し、ポジティブな一体感を生み出すかけがえのない存在として活躍できます。"}, "growth_environment": {"tips": "困ったときは周囲に頼れる心理的安全性があります。一人で抱え込まずチームで成果を分かち合える環境です。", "reverse_questions": [{"q": "「日常の業務の中で、メンバー同士の感謝や気配りを伝え合う機会はどのようにありますか？」", "intent": "チーム内の温かいコミュニケーションが日常的に実践されているかを知る質問です。"}, {"q": "「未経験の仕事に挑戦する際、どのようなフォローや対話の機会がありますか？」", "intent": "安心して一生懸命チャレンジできる環境かどうかを確かめる質問です。"}]}}}, {"no": 3, "id": "candidate:40", "user_type": "学生・求職者", "personality": {"type_name": "自分のペースで着実に進める安定タイプ", "base_type": "安定タイプ", "t_scores": {"社交性": 53.1, "好奇心": 38.8, "不安耐性": 49.7, "着実性": 58.8}, "style": "安定タイプ（★社交性 53.1 / 好奇心 38.8 / 不安耐性 49.7 / ★着実性 58.8）", "type_summary": "あなたの性格は、高い着実性と誠実さを武器に、任された役割を計画通りにきっちりと遂行していく【安定タイプ】の傾向にあります。", "individual_uniqueness": "【着実性（偏差値58.8）】が安定して高く、ルールや手順を守りながらミスなく仕事を仕上げる確実性を持っています。職場のチームにおいては、波風を立てず周囲を気遣いながら、業務を抜け漏れなく円滑に回す「頼れる現場のバランサー・サポーター」として不可欠な存在となります。", "strengths": [{"label": "ブレずに期日と約束を守る遂行力", "text": "計画を立てて逆算し、途中で投げ出さずにコツコツと最後までやり切る高い信頼性があります。"}, {"label": "相手の立場に立った丁寧な気配り", "text": "顧客やチームメンバーのニーズを先回りして察知し、細やかで行き届いたサポートを自然に提供できます。"}, {"label": "チームの和を乱さない協調性", "text": "自分の意見を無理に主張せず、周囲の意見をしっかり受け止めてチーム全体の調和を優先できます。"}], "future_orientation": [{"label": "想定外の変更に対するバッファ設計", "text": "計画通りに進まない時にストレスを感じやすいため、あらかじめ「予備の時間」をスケジュールに組み込むと余裕が保てます。"}, {"label": "自分の意見を小さく言語化する練習", "text": "周囲の調和を重んじるあまり受け身になりやすいため、1日1回は「自分はどう考えるか」を言葉にして共有する意識を持つと頼もしさが増します。"}], "ideal_environments": [{"label": "ゴールと手順が明確に共有される組織", "text": "あいまいな丸投げではなく、達成基準や期待される役割が明確に提示される現場で、持ち前の計画性が遺憾なく発揮されます。"}, {"label": "落ち着いたペースで着実に業務を積み上げる環境", "text": "朝令暮改が続く混沌としたスピード勝負よりも、一定のリズムと見通しを持って丁寧に進められるチームが合っています。"}, {"label": "誠実なサポートを正当に認めてくれる上司・チーム", "text": "派手なスタンドプレーだけでなく、約束を守り周囲を支える着実な貢献をしっかり見て評価してくれる環境で安心できます。"}]}, "values": {"top": ["計画性", "顧客への思いやり", "丁寧さ", "スピード"], "high": ["目標達成", "効率"], "culture_coords": {"x": -15, "y": -18}, "culture_type": "🛡️ 安定・品質 × 🎯 成果タイプ（計画性・丁寧さ・顧客配慮）", "quadrant": "左下象限（着実・安定 × 成果・タスク寄り）", "value_summary": "あなたのバリューの傾向は、【計画性】と【丁寧さ】を最優先し、顧客への細やかな心配りを忘れず、段取り良くスピーディーに成果を届ける【顧客志向・着実実行志向】にあります。", "core_value": "あなたにとって大切なのは、顧客や仲間に真心を尽くし、丁寧かつ計画的に仕事を仕上げていくこと。雑なスピードに流されず、相手が本当に安心できるクオリティを追求する姿勢は、どのような組織でも確固たる信頼を築く土台となります。そんなあなたが力を発揮しやすい会社の特徴は、次のとおりです。", "ideal_environments": [{"label": "顧客第一の誠実なサービス精神を重んじる企業", "text": "短期的な売上至上主義ではなく、「本当にお客様のためになる品質とは何か」に愚直に向き合う企業カルチャーと強く共鳴します。"}, {"label": "品質基準と業務プロセスが整っている組織", "text": "行き当たりばったりではなく、一定の品質基準や段取りを大切にし、丁寧な仕事を誇りにしている職場がベストです。"}, {"label": "誠意を持った対応が顧客の信頼につながる事業", "text": "自分の丁寧な気配りが相手の安心感を生み、長期的な信頼関係として返ってくる手応えを感じられる環境で意欲が高まります。"}]}, "match_analysis": {"fit_type": "同質（想い）× 補完（手堅い実務実行力）", "culture_synergy": "顧客への思いやりを共有しながら、計画とスピードのバランス感覚で現場業務を破綻なく回す頼もしいサポーター", "distance": 75.3}, "company_view": {"headline": "丁寧な気配りと計画的な完遂力を併せ持ち、チームと顧客に絶大な安心感を与えるサポーター", "value_resonance": {"overlap": "『丁寧さ』『顧客への思いやり』『計画性』", "explanation": "貴社バリューの『丁寧さ』を体現し、顧客への深い思いやりと計画性を持っています。子どもや保護者を相手にするデリケートなサービスにおいて、雑さのないきめ細やかな対応と確実なタスク遂行は、貴社の信頼ブランドを現場で強固に支える土台となります。"}, "team_affinity": {"style": "安定タイプ（★社交性 53.1 / 好奇心 38.8 / 不安耐性 49.7 / ★着実性 58.8）", "explanation": "周囲のペースを乱さず、約束や手順を誠実に守るフォロワーシップに長けています。波風を立てずにお互いを思いやる貴社の社風と完全に調和し、チームメンバーが「この人に任せておけば安心」と心から信頼できるパートナーになります。"}, "management_tips": {"onboarding": "急激な方針転換やあいまいな依頼は不安の原因になります。業務の優先順位と手順をあらかじめ明示し、「焦らなくていいよ」と声をかけることで質の高いアウトプットを安定供給します。", "questions": [{"q": "「ミスを防ぎ、仕事を丁寧に仕上げるために普段から工夫している手順や習慣はありますか？」", "focus": "計画性と丁寧さの再現性を確認します。"}, {"q": "「相手の立場に立った丁寧な対応が、顧客や周囲の安心につながった経験を教えてください。」", "focus": "ホスピタリティと業務品質へのこだわりを評価します。"}]}}, "student_view": {"headline": "丁寧な気配りと計画性が信頼を生み、落ち着いて長く力を発揮できる職場", "culture_fit": {"overlap": "『丁寧さ』『顧客への思いやり』『計画性』", "explanation": "あなたの持ち味である「丁寧な仕事」と「相手への思いやり」は、子育て支援サービスにおいて最も尊重される美徳です。雑な成果を求められることなく、誠実で確実な仕事ぶりを正当に評価してくれます。"}, "workplace_fit": {"role": "現場の品質と安心を守るサポーター", "explanation": "突発的なトラブルに振り回されず、計画通りにコツコツとやり遂げるあなたの姿勢は、周囲の仲間から「一緒にいて本当に安心できる」と深く信頼されます。"}, "growth_environment": {"tips": "落ち着いたコミュニケーションを好む風土です。段取りを整えて自分のペースで着実にスキルを深められます。", "reverse_questions": [{"q": "「日々の業務の進め方やスケジュール管理において、どのような手順やルールが整っていますか？」", "intent": "計画的に見通しを持って働ける環境かどうかを確かめる質問です。"}, {"q": "「業務の丁寧さや顧客満足に対して、チームではどのようなフィードバックを行っていますか？」", "intent": "質の高い仕事が正当に評価される文化かを確認する質問です。"}]}}}, {"no": 4, "id": "candidate:57", "user_type": "学生・求職者", "personality": {"type_name": "計画的に丁寧に積み上げる慎重タイプ", "base_type": "慎重タイプ", "t_scores": {"社交性": 51.5, "好奇心": 44.6, "不安耐性": 35.5, "着実性": 66.3}, "style": "慎重タイプ（★社交性 51.5 / 好奇心 44.6 / ★不安耐性 35.5 / ★着実性 66.3）", "type_summary": "あなたの性格は、妥協のない緻密さと高い責任感を持ち、細部まで徹底的にリスクを点検しながら強固な土台を築く【慎重タイプ】の傾向にあります。", "individual_uniqueness": "【着実性（偏差値66.3）】が全受検者の中でもトップクラスに高く、物事の抜け漏れや矛盾を絶対に見逃さない職人肌の緻密さを持っています。職場のチームにおいては、勢いだけで突進する組織の足元を固め、重大なミスやリスクを未然に防ぐ「頼もしい守護神・品質の番人」として機能します。", "strengths": [{"label": "正確無比で抜け漏れのない仕事の質", "text": "細かな数値やルールの不整合に瞬時に気づき、誰もが安心して引き継げる完璧なアウトプットを完成させます。"}, {"label": "固い信念に基づく誠実な信頼構築", "text": "その場しのぎの嘘やごまかしを嫌い、約束を愚直に守り抜くことで関わる人から深い信用を獲得します。"}, {"label": "物事を論理的・構造的に整理する力", "text": "複雑な課題も一つひとつ要素に分解し、安全で確実な手順へと再構築する高い分析力があります。"}], "future_orientation": [{"label": "60点段階での中間共有とリスクの分散", "text": "完璧を目指すあまり一人で抱え込みやすいため、「まずは下書き段階で相談する」習慣を持つとプレッシャーが大幅に軽減されます。"}, {"label": "失敗の許容とリカバリー思考の獲得", "text": "ミスを過度に恐れる傾向があるため、「失敗しても修正すれば前進である」と捉え直すことで行動のスピードが高まります。"}], "ideal_environments": [{"label": "背景や判断基準が論理的に明示されるチーム", "text": "情緒的なノリや勘に頼る指示ではなく、理由や判断基準がクリアに示されるチームで最もストレスなく力を発揮できます。"}, {"label": "ミスを責めずリカバリーを支え合う心理的安全な環境", "text": "減点主義で詰める文化を避け、一人ひとりの不安を汲み取りながらチームで支え合える安心感のある職場が最適です。"}, {"label": "緻密な分析や品質管理が不可欠な役割", "text": "専門性の高い調査・分析や、絶対にミスが許されない業務基盤など、あなたの正確さが直接頼られるポジションで輝きます。"}]}, "values": {"top": ["心身の充足", "信頼構築", "感謝", "信念"], "high": ["丁寧さ", "誠実"], "culture_coords": {"x": 48, "y": -12}, "culture_type": "🌱 ウェルビーイング × 🛡️ 安定・品質タイプ（感謝・信頼・信念）", "quadrant": "右下象限（着実・安定 × 人・関係重視）", "value_summary": "あなたのバリューの傾向は、【信頼構築】と【感謝】を最優先し、自らの信念を貫きながら、心身の健康と誠実な人間関係を何よりも大切にする【信頼・信念志向】にあります。", "core_value": "あなたにとって大切なのは、決して自分を偽らず、自分の信念に誇りを持ちながら、誠実な信頼関係を一つひとつ丁寧に紡いでいくこと。そして、日々の小さな感謝を忘れず、心身ともに満たされた状態で歩み続けることなのです。そんなあなたが力を発揮しやすい会社の特徴は、次のとおりです。", "ideal_environments": [{"label": "社員の心身の健康と持続可能性を守る企業", "text": "過度な消耗戦を美徳とせず、一人ひとりの心身のゆとりと健全な働き方を大切に尊重してくれる企業文化が不可欠です。"}, {"label": "約束と誠実さを何よりも重んじる組織風土", "text": "社内政治や表裏のある駆け引きがなく、お互いに感謝を伝え合い、嘘偽りのない信頼関係を築ける環境で心が安定します。"}, {"label": "自分の仕事に誇りと信念を持てる事業理念", "text": "利益のためなら何でもやる姿勢ではなく、「社会や顧客に胸を張れる価値を提供している」と確信できる企業で熱量が湧きます。"}]}, "match_analysis": {"fit_type": "同質（価値観）× 補完（緻密性・品質の要）", "culture_synergy": "企業の中心点（X:+55, Y:+10）と非常に近い『人重視』のエリアに位置。温かい想いを共有しつつ、高い着実性で運用の守護神となる関係", "distance": 23.1}, "company_view": {"headline": "感謝の心と固い信念を宿し、妥協のない緻密さでサービスの信頼性を守り抜く品質の要", "value_resonance": {"overlap": "『心身の充足』『感謝』『信頼構築』", "explanation": "貴社が最重要視する『心身の充足』と『感謝』に強く共鳴しています。さらに『信頼構築』へのこだわりと『信念』を持っており、「関わる人を裏切らない、質の高いものだけを届ける」という誠実さは、貴社のユーザーファーストな姿勢と寸分違わず合致します。"}, "team_affinity": {"style": "慎重タイプ（★社交性 51.5 / 好奇心 44.6 / ★不安耐性 35.5 / ★着実性 66.3）", "explanation": "極めて高い着実性（66.3）を持ち、リスクの芽や抜け漏れを事前に察知する鋭い観察力を発揮します。温かく前向きなチームが時に見落としがちな運用のリスクや規約の細部をきっちり点検し、サービス崩壊を防ぐ頼もしい「守護神」となります。"}, "management_tips": {"onboarding": "不安耐性が控えめなため、失敗への恐怖を感じやすい傾向があります。「失敗してもチーム全体でリカバリーするから大丈夫」というセーフティネットを言葉で明示することが何よりの特効薬です。", "questions": [{"q": "「信頼関係を築く上で、あなたが絶対に譲れない行動や大切にしているルールは何ですか？」", "focus": "『信頼構築』と『信念』の具体化レベルと誠実さを確かめます。"}, {"q": "「予期せぬトラブルやプレッシャーを感じた時、どのように気持ちを落ち着かせて対処していますか？」", "focus": "ストレスマネジメントの方法と周囲への相談姿勢を確認します。"}]}}, "student_view": {"headline": "感謝の文化に包まれながら、あなたの誠実さと品質へのこだわりを守り抜ける会社", "culture_fit": {"overlap": "『心身の充足』『感謝』『信頼構築』", "explanation": "日頃の「感謝」や「相手への信頼」を大切にする同社は、あなたのピュアな誠実さが最も心地よく息づく環境です。心身の充実を重んじる風土だからこそ、プレッシャーに追われることなく自分の信念を全うできます。"}, "workplace_fit": {"role": "サービスの信頼性を守り抜く品質の要", "explanation": "あなたの細やかな気配りと抜け漏れを防ぐ慎重さは、サービス運営における強力な安心感となります。前向きなチームの中で「この人が見てくれているから大丈夫」と頼りにされるポジションを確立できます。"}, "growth_environment": {"tips": "心理的安全性が非常に高く、失敗を個人に押し付けないセーフティネットがあります。安心して誠実に業務に集中できます。", "reverse_questions": [{"q": "「予期せぬトラブルやミスが発生した際、チームではどのように助け合ってリカバリーしていますか？」", "intent": "心理的安全性の実態とチームの支え合い文化を確認する質問です。"}, {"q": "「社員の心身のゆとりや健康を守るために、実際にどのような働き方の配慮がなされていますか？」", "intent": "『心身の充足』が現場レベルでどう担保されているかを知る質問です。"}]}}}, {"no": 5, "id": "candidate:25", "user_type": "学生・求職者", "personality": {"type_name": "特殊型（自由な発想で変化を楽しむ巻き込みタイプ / 3特性突出）", "base_type": "特殊型", "t_scores": {"社交性": 70.4, "好奇心": 67.7, "不安耐性": 66.3, "着実性": 38.7}, "style": "特殊型（★社交性 70.4 / ★好奇心 67.7 / ★不安耐性 66.3 / 着実性 38.7）", "type_summary": "あなたの性格は、突出した突破力と自由な創造性を併せ持ち、困難な状況すら楽しんで人を惹きつけながら前例のない成果を生み出す【特殊型（開拓・突破型）】の傾向にあります。", "individual_uniqueness": "BaseTypeである巻き込みタイプに比べ、【社交性（70.4）】【好奇心（67.7）】【不安耐性（66.3）】の3特性が驚異的に高く、圧倒的なエネルギッシュさを誇ります。職場のチームにおいては、既存の枠組みを打ち破り、前例のない新規プロジェクトや未開拓市場を切り拓く「最強のイノベーター・起爆剤」として重宝されます。", "strengths": [{"label": "人を圧倒的に惹きつける規格外の求心力", "text": "初対面やアウェイな場でも瞬時に場の空気を掴み、関わる人をワクワクさせて大きな渦を巻き起こせます。"}, {"label": "逆境でこそ燃える不屈のメンタルタフネス", "text": "プレッシャーや不確実なピンチに直面しても全く動じず、ピンチをチャンスに変える発想でチームを牽引します。"}, {"label": "本質を見抜いて素早く実行に移す瞬発力", "text": "枝葉末節にとらわれず「何が核心か」を直感的に見極め、圧倒的なスピード感でアイデアを現実のアクションへと転換できます。"}], "future_orientation": [{"label": "着実なパートナーとの強固なバディ設計", "text": "推進力と創造力が突出している反面、ルーティンや細かい事務作業を苦手とするため、実務をきっちり固めてくれる相棒と組むと無敵になります。"}, {"label": "興味の拡散を防ぐフォーカス設定", "text": "次々と新しい可能性に目移りしやすいため、「今月はこのゴールを仕留める」と注力テーマを絞る習慣が成功の鍵です。"}], "ideal_environments": [{"label": "若手にも大胆な裁量を任せてくれるベンチャー環境", "text": "細かなルールや階層に縛られず、自らの判断でスピーディーに施策を打てる組織で規格外のポテンシャルが解放されます。"}, {"label": "高い目標に向かってスリリングに挑戦できる現場", "text": "定型業務の繰り返しではなく、新規開拓や事業立ち上げなど、前例のない高いハードルに挑むチームで最も燃え上がります。"}, {"label": "実務を着実に固めてくれるサポーターがいる体制", "text": "あなたが前頭で突破口を開き、後方の運用や詰めを堅実な仲間が担ってくれるバディ体制があると最大の成果が生まれます。"}]}, "values": {"top": ["自由", "目標達成", "本質志向", "謙虚"], "high": ["変革", "独創性"], "culture_coords": {"x": -22, "y": 58}, "culture_type": "🚀 革新・変革タイプ（自由・目標達成・本質志向）", "quadrant": "左上象限（挑戦・変革 × 成果・タスク重視）", "value_summary": "あなたのバリューの傾向は、【自由】と【本質志向】を最優先し、形式的な縛りにとらわれず自らの裁量で高い成果を目指す【自律・本質追求志向】にあります。", "core_value": "あなたにとって大切なのは、既存の枠にとらわれず自分たちの本当の目的を見つめながら、自由に挑戦していくこと。同時に、高い成果を求めながらも決して傲慢にならず、相手の視点を尊重して謙虚に学び続けることなのです。そんなあなたが力を発揮しやすい会社の特徴は、次のとおりです。", "ideal_environments": [{"label": "目的志向で個人の裁量が最大化された企業", "text": "「なぜやるか」の本質が共有され、達成までのアプローチを個人の自由に委ねてくれる風通しの良い組織で最も力を発揮します。"}, {"label": "フラットで本質的な成果を評価するカルチャー", "text": "年功序列や社内政治がなく、年齢に関係なく本質的な成果や果敢な挑戦をダイレクトに評価してくれる風土がベストマッチです。"}, {"label": "自由と謙虚さをリスペクトし合えるチーム", "text": "互いの自由な個性を尊重しつつも、相手への敬意や謙虚な学び合いを忘れない成熟した組織で高いエンゲージメントを保てます。"}]}, "match_analysis": {"fit_type": "補完フィット（突破口を拓く新規起爆剤）", "culture_synergy": "企業の中心点と対角（左上）に位置する突出した開拓型。謙虚さを兼ね備えているためハレーションを起こさず、温かいチームに挑戦の刺激を届ける関係", "distance": 90.7}, "company_view": {"headline": "圧倒的なバイタリティと本質思考で、チームの枠組みを越えて新境地を切り拓くイノベーター", "value_resonance": {"overlap": "『本質志向』『謙虚』", "explanation": "現状維持に甘んじず「本質的な価値とは何か」を問い続ける姿勢と、突出した社交性を持ちながら『謙虚』さを忘れないバランス感覚を持っています。貴社の温かい土台の上で、既存の発想にとらわれない新しいサービス展開やコラボレーションを仕掛けることができます。"}, "team_affinity": {"style": "特殊型（★社交性 70.4 / ★好奇心 67.7 / ★不安耐性 66.3 / 着実性 38.7）", "explanation": "3特性が偏差値65を超える極めてエネルギッシュな人材です。落ち着いたチームにとって最初は刺激的に映るかもしれませんが、謙虚さを併せ持つため軋轢を生みにくく、チーム全体に前向きな活力と挑戦の風を吹き込んでくれます。"}, "management_tips": {"onboarding": "型にはめすぎると持ち前の爆発力が失われます。自由度の高いテーマや「未開拓の課題解決」をミッションとして渡し、伴走役が着実な進捗フォローを担う体制がベストです。", "questions": [{"q": "「自分の自由な発想や挑戦が、既存のチームや周囲の人に受け入れられた経験はありますか？」", "focus": "周囲と協調しながら自らの推進力を発揮できるかを見極めます。"}, {"q": "「目標を追う中で、周囲への『謙虚さ』や感謝をどのように行動に表していますか？」", "focus": "エゴに走らずチームと調和できるかを確認します。"}]}}, "student_view": {"headline": "温かい信頼を背中に受けながら、自由な発想で新しい道を切り拓く起爆剤になれる", "culture_fit": {"overlap": "『本質志向』『謙虚』", "explanation": "あなたが求める「自由と本質の探究」は、同社の家族的で受容的な土壌の上でこそ最大限に開花します。あなたの突出したエネルギーを否定することなく、温かく見守り背中を押してくれる懐の深さがあります。"}, "workplace_fit": {"role": "チームに変化と活力をもたらすイノベーター", "explanation": "落ち着いたメンバーが多い中で、あなたの高い好奇心と行動力は待望の推進エンジンになります。謙虚さを忘れずに周囲を巻き込むことで、誰も見たことのない新しい成果をチームで創出できます。"}, "growth_environment": {"tips": "裁量権が大きく、自由なアイデア出しを歓迎する風土です。自律的に目標を掲げてチャレンジできます。", "reverse_questions": [{"q": "「新しいサービスや企画を立ち上げる際、若手メンバーにはどのような裁量やチャンスが与えられますか？」", "intent": "自分の独創性とバイタリティを思い切り発揮できる環境かを測る質問です。"}, {"q": "「既存のルールややり方に縛られず、新しい挑戦を後押ししてくれた具体例はありますか？」", "intent": "変化を受け入れるカルチャーの柔軟性を確かめる質問です。"}]}}}, {"no": 6, "id": "employee:759", "user_type": "既存社員", "personality": {"type_name": "周囲を牽引し構想を現実する推進タイプ", "base_type": "推進タイプ", "t_scores": {"社交性": 56.2, "好奇心": 67.7, "不安耐性": 63.9, "着実性": 61.3}, "style": "推進タイプ（社交性 56.2 / ★好奇心 67.7 / ★不安耐性 63.9 / ★着実性 61.3）", "type_summary": "あなたの性格は、明るい前向きさと高い当事者意識を持ち、顧客と仲間の幸福を見据えながらチームを力強く牽引していく【推進タイプ】の傾向にあります。", "individual_uniqueness": "推進力に加えて【好奇心（58.0）】と【社交性（56.2）】のバランスが良く、一方的な押し付けにならない温かいリーダーシップを発揮します。職場のチームにおいては、メンバーの意見をポジティブに受け止めながら、サービス向上や組織改善の先頭に立つ「変革リーダー・頼れる推進役」として信頼を集めます。", "strengths": [{"label": "困難な局面でも場を前向きにする牽引力", "text": "厳しい目標やトラブルに際しても弱音を吐かず、「どうすればできるか」を明るく示してチームを動かせます。"}, {"label": "顧客視点と事業推進の両立力", "text": "目先の利益だけでなく、お客様の満足と社会への貢献を常に意識した誠実な提案を形にできます。"}, {"label": "他者を巻き込むオープンな働きかけ", "text": "壁を作らず誰とでもフランクに対話し、チーム全体の働きやすさを向上させるための改善を自発的に起こせます。"}], "future_orientation": [{"label": "長期的なタスク管理と定期的な進捗棚卸し", "text": "前向きに次々と課題に取り組む分、複数のプロジェクトが並行した際の進行管理を仲間とシェアすると確実性が高まります。"}, {"label": "周囲の負荷に配慮したペース配分", "text": "自分自身のバイタリティが高いため、周囲のメンバーがついてこられているか、こまめに確認を入れる意識が信頼を深めます。"}], "ideal_environments": [{"label": "前向きな提案を歓迎し背中を押してくれる上司・環境", "text": "改善アイデアや新規施策の提案に対して「いいね、やってみよう」と迅速に承認し、推進を後押ししてくれる組織で力を発揮します。"}, {"label": "部門横断で人と活発に連携できるフラットな現場", "text": "縦割りのセクショナリズムがなく、顧客やチームのために自由に声を掛け合える風通しの良い環境が合っています。"}, {"label": "自らがチームや後輩をリードできる役割", "text": "単なる作業者にとどまらず、現場のまとめ役や改善プロジェクトのリードなど、人を導くポジションを担うことで輝きます。"}]}, "values": {"top": ["顧客への思いやり", "働きやすさ", "ポジティブ", "社会的責任"], "high": ["人の尊重", "感謝"], "culture_coords": {"x": 52, "y": 36}, "culture_type": "🌱 ウェルビーイング × 🤝 協調タイプ（働きやすさ・ポジティブ）", "quadrant": "右側（ウェルビーイング × 協調）", "value_summary": "あなたのバリューの傾向は、【顧客への思いやり】と【ポジティブ】を最優先し、チームの働きやすさと社会的意義を重んじながら前進する【社会貢献・ポジティブ志向】にあります。", "core_value": "あなたにとって大切なのは、顧客に寄り添うおもてなしの心を忘れず、どんなときもポジティブな笑顔でチームを照らし続けること。そして、みんなが働きやすい温かい職場環境を創りながら、社会への責任を果たしていくことなのです。そんなあなたが力を発揮しやすい会社の特徴は、次のとおりです。", "ideal_environments": [{"label": "顧客第一の理念が現場まで浸透している企業", "text": "数字のノルマよりも顧客の真の課題解決に誇りを持てる、誠実なサービス思想を持つ企業で最も意欲が高まります。"}, {"label": "前向きな挑戦を歓迎し互いを称賛し合うカルチャー", "text": "失敗を恐れて減点主義に陥るのではなく、新しいチャレンジを認め合い、ポジティブな言動が飛び交う組織が合っています。"}, {"label": "社会的な存在意義（パーパス）が明確な企業", "text": "自分たちの仕事が社会にどう役立っているかを実感でき、胸を張って家族や仲間に語れるビジョンを持つ企業が最適です。"}]}, "match_analysis": {"fit_type": "同質（想い）× 補完（牽引力）", "culture_synergy": "企業の目指すウェルビーイングな組織像と美しい調和を成しつつ、高い好奇心と着実性で現場の働きやすさを改革するリーダー", "distance": 26.2}, "company_view": {"headline": "顧客と仲間の幸福を誰よりも願い、前向きなエネルギーでチームを引っ張る温かいリーダー", "value_resonance": {"overlap": "『顧客への思いやり』『働きやすさ』『社会的責任』", "explanation": "「顧客を思いやり、みんなが働きやすい環境を創る」という志向は、貴社の目指すウェルビーイングな組織像と完全に一致しています。単に成果を追うだけでなく、関わる全員が笑顔になれる仕組みづくりに情熱を燃やせる人材です。"}, "team_affinity": {"style": "推進タイプ（社交性 56.2 / ★好奇心 67.7 / ★不安耐性 63.9 / ★着実性 61.3）", "explanation": "困難な局面に直面しても明るく前を向き、周囲を勇気づけながら解決策を導きます。メンバーの優しさに甘んじることなく、サービスと組織の『働きやすさ・健全性』を向上させる頼もしい主導者として機能します。"}, "management_tips": {"onboarding": "「社内改善プロジェクト」や「顧客満足度向上施策」など、人や環境を良くするテーマをリードさせると最大のモチベーションを発揮します。", "questions": [{"q": "「チーム全体の働きやすさや雰囲気を良くするために、自ら率先して起こしたアクションは何ですか？」", "focus": "推進力と周囲への思いやりが融合したリーダーシップを検証します。"}, {"q": "「困難な状況でもポジティブさを保ち、仲間を巻き込んで前に進めたエピソードを教えてください。」", "focus": "組織への好影響の与え方を確認します。"}]}}, "student_view": {"headline": "みんなが幸せに働ける環境づくりをリードし、顧客も仲間も笑顔にできる職場", "culture_fit": {"overlap": "『顧客への思いやり』『働きやすさ』『社会的責任』", "explanation": "顧客だけでなく「一緒に働く仲間が無理なく前向きに働けること」を大切にする同社は、あなたのウェルビーイング志向と完璧に共鳴します。社会的な意義を実感しながら気持ちよく働けます。"}, "workplace_fit": {"role": "温かさと推進力を両立する現場リーダー", "explanation": "あなたのポジティブさと高い着実性は、チームの心理的安全性を高めながら確実な成果を生み出します。誰もが安心してついていける理想的な牽引役として活躍できます。"}, "growth_environment": {"tips": "働く人の幸せを本気で考えるカルチャーです。現場の業務改善や新しい仕組みづくりを主体的に提案できます。", "reverse_questions": [{"q": "「社員の働きやすさやエンゲージメントを高めるために、現在どのような取り組みに注力していますか？」", "intent": "職場環境改善に対する会社のコミットメントを確認する質問です。"}, {"q": "「現場のメンバーがリーダーシップを発揮して組織を良くしていける裁量はありますか？」", "intent": "自分の推進力を組織改善に活かせるかを知る質問です。"}]}}}, {"no": 7, "id": "employee:766", "user_type": "既存社員", "personality": {"type_name": "自由な発想で変化を楽しむ巻き込みタイプ", "base_type": "巻き込みタイプ", "t_scores": {"社交性": 57.8, "好奇心": 46.5, "不安耐性": 33.1, "着実性": 43.7}, "style": "巻き込みタイプ（★社交性 57.8 / 好奇心 46.5 / ★不安耐性 33.1 / 着実性 43.7）", "type_summary": "あなたの性格は、旺盛な好奇心と軽やかなポジティブさを持ち、変化を柔軟に楽しみながら新しいアイデアで周囲を巻き込んでいく【巻き込みタイプ】の傾向にあります。", "individual_uniqueness": "【社交性（偏差値57.8）】が高く、気さくな親しみやすさで周囲との壁をなくす力があります。一方でプレッシャーに対してはやや繊細な面を持つため、安心できるチームの中でこそ持ち前の発想力と巻き込み力が伸びやかに発揮されます。", "strengths": [{"label": "新しい可能性を見つけ出す柔軟な着想力", "text": "前例にとらわれず「こんなやり方はどうだろう」と面白い切り口を次々と発想し、場を活性化させます。"}, {"label": "気後れせずに飛び込むフットワーク", "text": "未経験の領域や新しいツールにも苦手意識を持たず、楽しみながら素早くキャッチアップして使いこなせます。"}, {"label": "場の雰囲気を和ませる親しみやすさ", "text": "気さくなコミュニケーションで緊張を解きほぐし、誰もが自由に発言しやすいオープンな空気を作れます。"}], "future_orientation": [{"label": "完遂に向けた小さなマイルストーン設定", "text": "着想からスタートまでの瞬発力が高い一方、仕上げ段階で飽きやすいため、ゴールまでの過程を小さく区切って進めると効果的です。"}, {"label": "不安やプレッシャーの早期言語化", "text": "一人で重圧を抱え込むと元気が低下しやすいため、困った時は早い段階で周囲に軽く相談する習慣がメンタルを守ります。"}], "ideal_environments": [{"label": "アイデア出しを気軽に歓迎してくれるチーム", "text": "堅苦しい承認フローがなく、思いついたアイデアを「それ面白いね」と気兼ねなく壁打ちできる仲間がいる環境が合っています。"}, {"label": "心理的負担が少なく適度なペースが守られる現場", "text": "過剰なノルマや緊迫した詰めの文化がなく、精神的なゆとりを持って柔軟にトライ＆エラーができるチームで伸びます。"}, {"label": "実務の着地を支えてくれる頼もしい相棒がいる体制", "text": "企画や発信にエネルギーを注ぎつつ、最後のまとめや確認を着実なメンバーが担ってくれる環境で最大の成果を出せます。"}]}, "values": {"top": ["適度さ", "目標達成", "好奇心", "ポジティブ"], "high": ["変革", "自由"], "culture_coords": {"x": 18, "y": 42}, "culture_type": "🚀 革新・柔軟 × 🌱 ウェルビーイングタイプ（好奇心・適度さ）", "quadrant": "上部中央（変革・柔軟 × バランス）", "value_summary": "あなたのバリューの傾向は、【好奇心】と【適度さ】を最優先し、無理な消耗を避けながら、新しいことへのワクワク感を原動力にスマートに目標を達成する【好奇心・スマート達成志向】にあります。", "core_value": "あなたにとって大切なのは、何事も好奇心のアンテナを張り巡らせ、ポジティブに楽しみながらスマートに結果を出していくこと。無理に自分をすり減らさず、適度なバランスを保ちながらいきいきと挑戦し続ける持続可能なワークスタイルを持っています。そんなあなたが力を発揮しやすい会社の特徴は、次のとおりです。", "ideal_environments": [{"label": "知的好奇心が刺激され新しい学びがある企業", "text": "同じ作業の繰り返しではなく、最新のトレンドや異分野の知識に触れられ、知的な刺激に満ちた成長企業が合っています。"}, {"label": "無理な根性論を排しスマートに成果を追う風土", "text": "長時間労働を美徳とする体育会系カルチャーではなく、効率と柔軟性を重んじ、持続可能なペースで成果を出す組織が最適です。"}, {"label": "遊び心とチャレンジ精神を肯定する社風", "text": "堅苦しい形式よりも、面白さや新規性を面白がり、メンバーの突飛な発想もまずは受け止めてくれる職場がベストです。"}]}, "match_analysis": {"fit_type": "同質フィット（軽やかな挑戦とムードメイク）", "culture_synergy": "無理な根性論を避ける『適度さ』と柔軟な好奇心を持ち、チームに軽やかな風を吹き込むコミュニケーター", "distance": 48.9}, "company_view": {"headline": "柔軟な好奇心とポジティブな対話力で、変化を楽しみながらチームを活気づけるコミュニケーター", "value_resonance": {"overlap": "『適度さ』『好奇心』『ポジティブ』", "explanation": "無理な根性論を避ける『適度さ（持続可能性）』を重んじつつ、旺盛な好奇心と前向きな姿勢を持っています。これは「心身を充足させながら、いきいきと楽しく働く」という貴社の理想的なワークスタイルそのものです。"}, "team_affinity": {"style": "巻き込みタイプ（★社交性 57.8 / 好奇心 46.5 / ★不安耐性 33.1 / 着実性 43.7）", "explanation": "堅苦しい雰囲気を和らげ、メンバー同士の気軽なコミュニケーションを誘発する才能があります。新しいアイデアを軽やかに試し、周囲を巻き込んで「まずやってみよう」という空気を醸成します。"}, "management_tips": {"onboarding": "自由な発想を肯定し、アイデア出しの機会を多く提供してください。詰めの管理はルールでガチガチにするより、チーム全体でシェアしながら進めるスタイルが合っています。", "questions": [{"q": "「最近ワクワクした新しいことや、周囲にシェアして喜ばれた話題は何ですか？」", "focus": "好奇心のアンテナと発信のスタンスを測ります。"}, {"q": "「無理に頑張りすぎず、適度なバランスを保ちながら成果を出すために工夫していることは？」", "focus": "『適度さ』の解釈とセルフコントロール力を確認します。"}]}}, "student_view": {"headline": "無理なく自分らしく、新しいアイデアを軽やかに試せる心地よいチーム", "culture_fit": {"overlap": "『適度さ』『好奇心』『ポジティブ』", "explanation": "過度なプレッシャーを嫌い、持続可能なペースで楽しく成果を出したいあなたの価値観は、同社のワークライフバランスと完全に一致します。肩肘張らず自然体で働けます。"}, "workplace_fit": {"role": "職場の空気を明るくするムードメーカー", "explanation": "あなたの気さくな対人力とポジティブさは、メンバー同士の会話を弾ませる最高の潤滑油になります。「まずはやってみよう」という前向きなカルチャーを広げる役割を担えます。"}, "growth_environment": {"tips": "柔軟なコミュニケーションを大切にする環境です。アイデアを気軽に発信しながら成長できます。", "reverse_questions": [{"q": "「チームの中で気軽にアイデアや雑談を交わし合えるカルチャーはどのように作られていますか？」", "intent": "心理的安全性の高さと自由な発信のしやすさを確かめる質問です。"}, {"q": "「仕事とプライベートのバランスを保ちながら成果を出す働き方を、会社としてどう支援していますか？」", "intent": "『適度さ』に対する組織の理解度を測る質問です。"}]}}}, {"no": 8, "id": "employee:691", "user_type": "既存社員", "personality": {"type_name": "自分のペースで着実に進める安定タイプ", "base_type": "安定タイプ", "t_scores": {"社交性": 54.6, "好奇心": 38.8, "不安耐性": 56.8, "着実性": 43.7}, "style": "安定タイプ（★社交性 54.6 / 好奇心 38.8 / ★不安耐性 56.8 / 着実性 43.7）", "type_summary": "あなたの性格は、誠実な人間関係を大切に育みながら、丁寧で確実な仕事ぶりで周囲に深い安心感をもたらす【安定タイプ】の傾向にあります。", "individual_uniqueness": "【不安耐性（偏差値56.8）】と【社交性（偏差値54.6）】が心地よい調和を保っており、情緒が安定していて誰に対しても親身で誠実に向き合えます。職場のチームにおいては、メンバーの調子やメンタルを気遣い、日々の業務を滞りなく支える「チームのオアシス・信頼のバランサー」として愛されます。", "strengths": [{"label": "お互いを尊重し感謝を紡ぐ人間関係構築", "text": "相手の小さな気配りや貢献を見逃さず、言葉にして感謝を伝えることで、強い絆と信頼関係を築けます。"}, {"label": "手堅く丁寧な仕事で信頼される実行力", "text": "雑な妥協をせず、一つひとつの業務に真心を込めて丁寧に仕上げるため、周囲から安心して仕事を任されます。"}, {"label": "穏やかで安心感のあるコミュニケーション", "text": "感情的にトゲを立てず、相手のペースに合わせてじっくりと話を聴けるため、相談役として頼りにされます。"}], "future_orientation": [{"label": "自分の意見や希望を小さく自己主張する習慣", "text": "周囲の調和を重んじるあまり遠慮しがちなため、「私はこう思う」と自分の考えを1日1回伝える意識を持つとさらに頼もしさが増します。"}, {"label": "変化に対する前向きな心構え", "text": "慣れた手順が変わる際に慎重になりやすいため、「新しいやり方を試す実験」と捉えて少しずつ慣れていくと柔軟性が広がります。"}], "ideal_environments": [{"label": "お互いを気遣い丁寧に対話を重ねるチーム", "text": "ギスギスした競争やプレッシャーではなく、困った時に助け合い、穏やかに意見交換ができる温かいチームで本領を発揮します。"}, {"label": "自分の役割とペースが守られる落ち着いた環境", "text": "突発的な割り込みが多すぎる環境を避け、任された仕事に集中して丁寧に向き合える環境が合っています。"}, {"label": "日頃の丁寧な気配りを認めてくれる上司・仲間", "text": "目立つ成果だけでなく、チームの調和や細やかな配慮をしっかり見て「ありがとう」と返してくれる組織で安心できます。"}]}, "values": {"top": ["適度さ", "丁寧さ", "信頼構築", "感謝"], "high": ["人の尊重", "心身の充足"], "culture_coords": {"x": 62, "y": 6}, "culture_type": "🤝 協調・関係タイプ（感謝・丁寧・信頼構築・適度さ）", "quadrant": "右側（協調・関係のコアゾーン）", "value_summary": "あなたのバリューの傾向は、【感謝】と【丁寧さ】を最優先し、互いを思いやる信頼関係を基盤に、無理のないペースで丁寧に役割を全うする【調和・感謝志向】にあります。", "core_value": "あなたにとって大切なのは、人と人との繋がりを心から大切にし、日々の小さな出会いや支え合いに心から感謝すること。そして、焦らず丁寧に仕事と向き合い、穏やかな信頼関係を築いていくことなのです。そんなあなたが力を発揮しやすい会社の特徴は、次のとおりです。", "ideal_environments": [{"label": "感謝とリスペクトが文化として根付く企業", "text": "「ありがとう」が日常的に飛び交い、心理的安全性が確保された温かい企業風土を持つ会社で最も心が満たされます。"}, {"label": "仕事の丁寧さや誠実さを正当に評価する組織", "text": "見た目の派手さや要領の良さだけでなく、見えないところでの気配りや丁寧な積み上げを誇りにしている文化が最適です。"}, {"label": "心身のゆとりと持続可能な働き方を大切にする風土", "text": "無理な長時間労働を美徳とせず、プライベートや健康を尊重しながら、安定して長く貢献できる環境で真価を発揮します。"}]}, "match_analysis": {"fit_type": "完全同質フィット（理念と風土のパーフェクトシンクロ）", "culture_synergy": "企業の中心点（X:+55, Y:+10）とほぼ完全一致。説明不要で文化を深く理解し体現できる希有な人材", "distance": 8.1}, "company_view": {"headline": "日々の感謝と丁寧な仕事を積み重ね、お互いを思いやる温かい風土を体現する理想の仲間", "value_resonance": {"overlap": "『感謝』『丁寧さ』『信頼構築』『適度さ』", "explanation": "上位バリューのすべてが貴社のコアバリューと美しい調和を成しています。「感謝の気持ちを言葉にし、丁寧に仕事をして信頼を築く」という生き方は、貴社の存在理由そのもの。説明不要で貴社の文化を深く理解し、体現できる希有な人材です。"}, "team_affinity": {"style": "安定タイプ（★社交性 54.6 / 好奇心 38.8 / ★不安耐性 56.8 / 着実性 43.7）", "explanation": "チーム内の誰に対しても分け隔てなく親身に接し、潤滑油として機能します。メンバーのメンタル面や体調の変化にも自然と気を配れるため、貴社の「心身の充足」を現場レベルで支え続ける中核的存在になります。"}, "management_tips": {"onboarding": "自己主張を強く押し通すタイプではないため、1on1などで「最近困っていることはない？」「どう感じた？」と優しく水を向けてあげてください。", "questions": [{"q": "「日頃の感謝や気配りを伝えることで、関係性が深まった具体的なエピソードはありますか？」", "focus": "貴社の『感謝』のカルチャーとの深い共鳴度合いを確認します。"}, {"q": "「あなたがチームにいて『一番安心できる』と感じる瞬間はどんな時ですか？」", "focus": "心理的安全性の条件を共有し合います。"}]}}, "student_view": {"headline": "お互いを思いやり感謝を交わし合う、あなたの温かい心がそのまま活きる理想郷", "culture_fit": {"overlap": "『感謝』『丁寧さ』『信頼構築』『適度さ』", "explanation": "あなたが人生で大切にしていることすべてが、同社の日常風景です。嘘や競争に疲れることなく、丁寧な仕事とお互いへの感謝を積み重ねることで、心から安心できる居場所を見つけられます。"}, "workplace_fit": {"role": "組織の温かい風土を支える精神的支柱", "explanation": "あなたの穏やかで誠実な対応は、チームの誰もが癒され元気づけられる安心の源になります。周囲のメンバーをそっと支える中核として欠かせない存在になります。"}, "growth_environment": {"tips": "心理的安全性が確立された環境です。プレッシャーを感じることなく、自分のペースで着実に信頼を築けます。", "reverse_questions": [{"q": "「メンバー同士がお互いを尊重し、助け合うカルチャーを維持するために大切にしている価値観は何ですか？」", "intent": "同社が誇る温かい風土の源泉を共有し合う質問です。"}, {"q": "「丁寧な仕事や誠実な人間関係が、どのように会社の強みや評価につながっていますか？」", "intent": "自分の強みが正当に評価されるかを確認する質問です。"}]}}}, {"no": 9, "id": "employee:771", "user_type": "既存社員", "personality": {"type_name": "計画的に丁寧に積み上げる慎重タイプ", "base_type": "慎重タイプ", "t_scores": {"社交性": 53.1, "好奇心": 42.7, "不安耐性": 37.9, "着実性": 61.3}, "style": "慎重タイプ（★社交性 53.1 / 好奇心 42.7 / ★不安耐性 37.9 / ★着実性 61.3）", "type_summary": "あなたの性格は、誠実さと顧客への真心を第一に掲げ、寸分の狂いもない緻密さで高い品質と信頼を守り抜く【慎重タイプ】の傾向にあります。", "individual_uniqueness": "【着実性（偏差値61.3）】と【社交性（偏差値53.1）】を兼ね備え、人に寄り添いながらも約束や手順を絶対に破らない高い規律性を持っています。職場のチームにおいては、顧客対応の品質基準を引き上げ、業務の抜け漏れやトラブルを水際で食い止める「信頼の守護神・クオリティアンカー」として絶大な信頼を寄せられます。", "strengths": [{"label": "誠実そのものの態度で顧客を掴む信頼力", "text": "口先だけの調子の良い約束をせず、約束したことを確実に形にすることで、顧客から揺るぎない信用を得られます。"}, {"label": "緻密なリスク管理と品質防衛力", "text": "契約や運用の細部にまで目を配り、後から問題になりそうなリスクを事前に察知して堅牢に対処できます。"}, {"label": "感謝の心を忘れない謙虚なチーム貢献", "text": "自分の手柄を誇示することなく、常に周囲への感謝を胸に持ちながら、陰でチームを支える高い責任感があります。"}], "future_orientation": [{"label": "不完全な状態での早期相談とセーフティネットの活用", "text": "責任感が強すぎて一人で抱え込みがちなため、「ちょっと見てもらえますか」と早期に仲間にパスを出す意識を持つと気が楽になります。"}, {"label": "想定外のトラブルに対する割り切り", "text": "突発的な変更に動揺しやすいため、「予期せぬことは起きて当然」と構え、周囲に助けを求める柔軟さを持つとさらに強固になります。"}], "ideal_environments": [{"label": "品質基準や仕事の手順がしっかりと定義されたチーム", "text": "勘や曖昧さで進めるのではなく、明確なルールや手順書が整っており、誠実に業務を全うできる環境で安心できます。"}, {"label": "落ち着いて細部まで確認できる業務フロー", "text": "スピードだけを求めて確認を省くような現場を避け、じっくりと点検して安全性を担保できる仕事で真価を発揮します。"}, {"label": "困った時に背中を預け合える誠実な仲間がいる組織", "text": "責任を一人に押し付けず、何かあればチーム全体でカバーし合える安心感のある体制に身を置くことで伸び伸びと動けます。"}]}, "values": {"top": ["顧客への思いやり", "信頼構築", "感謝", "誠実"], "high": ["丁寧さ", "人の尊重"], "culture_coords": {"x": 55, "y": -18}, "culture_type": "🤝 協調 × 🛡️ 安定・品質タイプ（誠実・顧客思いやり・感謝）", "quadrant": "右下（協調・関係 × 着実・規律）", "value_summary": "あなたのバリューの傾向は、【誠実】と【顧客への思いやり】を最優先し、嘘のない真心を込めた仕事で深い信頼関係を築き上げる【誠実・信頼最重視志向】にあります。", "core_value": "あなたにとって大切なのは、誰に対しても常に誠実であり続け、心のこもった丁寧な仕事を通じて揺るぎない信頼を築くこと。損得や効率に惑わされず、相手のために全力を尽くすその高潔な姿勢は、どのような組織でも最大の信頼資産となります。そんなあなたが力を発揮しやすい会社の特徴は、次のとおりです。", "ideal_environments": [{"label": "顧客満足と品質に妥協しない誠実な企業", "text": "短期的な売上至上主義ではなく、顧客との長期的な信頼と満足度を何よりも誇りにする、倫理観の高い企業が最適です。"}, {"label": "お互いに嘘や隠し事のないオープンで誠実なチーム", "text": "ミスを責め立てて隠蔽させるのではなく、原因を一緒に究明して改善し合える、誠実で心理的安全性の高い組織が合っています。"}, {"label": "丁寧な仕事ぶりをじっくり見て評価してくれる環境", "text": "要領の良さや声の大きさではなく、約束を守り抜く姿勢や細やかな顧客フォローを正当に見てくれる公平な評価制度を持つ企業がベストです。"}]}, "match_analysis": {"fit_type": "同質フィット（誠実さと顧客第一主義）", "culture_synergy": "企業の『人への思いやり』を忠実に受け継ぎつつ、誠実さと着実性で顧客の信頼を絶対に裏切らない品質を守る存在", "distance": 28.0}, "company_view": {"headline": "嘘のない誠実さと深い感謝の心を胸に、顧客への真心を揺るぎない品質で届ける信頼の鑑", "value_resonance": {"overlap": "『感謝』『誠実』『顧客への思いやり』『信頼構築』", "explanation": "『誠実』と『感謝』を軸に、顧客への思いやりを徹底する姿勢は、貴社の事業哲学そのものです。損得や効率よりも「誠実であること」「相手に寄り添うこと」を優先できるため、ユーザーからの厚い信頼を勝ち得ることができます。"}, "team_affinity": {"style": "慎重タイプ（★社交性 53.1 / 好奇心 42.7 / ★不安耐性 37.9 / ★着実性 61.3）", "explanation": "任された役割を絶対に途中で投げ出さず、完璧にやり遂げる高い当事者意識を持っています。貴社の対話を重視する温かい環境の中で、実務面の手堅いバックボーンとしてチーム全員から頼られる存在になります。"}, "management_tips": {"onboarding": "責任感が非常に強いため、一人で抱え込んで無理をしていないかを定期的に確認してあげてください。「頼ってくれていいんだよ」というメッセージが安心感を生みます。", "questions": [{"q": "「お客様やチームメンバーに対して『誠実に向き合う』とは、具体的にどのような行動だと考えていますか？」", "focus": "誠実さの定義と行動基準をすり合わせます。"}, {"q": "「仕事のクオリティを高めるために、普段どのような細部にまで気を配っていますか？」", "focus": "品質へのこだわりと着実性を評価します。"}]}}, "student_view": {"headline": "誠実さと真心が正当に評価され、お客様に深い信頼を届けられる安心の環境", "culture_fit": {"overlap": "『感謝』『誠実』『顧客への思いやり』『信頼構築』", "explanation": "「嘘をつかないこと」「誠実であること」を最も重んじる同社の姿勢は、あなたの倫理観と完璧に一致します。表面的な営業トークではなく、心からの思いやりで顧客と向き合えます。"}, "workplace_fit": {"role": "誠実さでチームを支える信頼のバックボーン", "explanation": "約束を厳格に守り、高い品質でやり遂げるあなたの着実さは、チーム全員の安心感になります。お互いを尊重し合える仲間の中で、長く手腕を発揮できます。"}, "growth_environment": {"tips": "信頼関係を最も大切にする組織です。無理なノルマに追われず、誠実な仕事をじっくり追求できます。", "reverse_questions": [{"q": "「顧客やステークホルダーとの信頼関係を守るために、会社として絶対に譲らない誠実さの基準は何ですか？」", "intent": "事業の誠実性とインテグリティの深さを確かめる質問です。"}, {"q": "「責任感が強く一人で抱え込みがちなメンバーに対して、チーム全体でどのようにサポートしていますか？」", "intent": "安心して頼り合える組織体制があるかを知る質問です。"}]}}}, {"no": 10, "id": "employee:763", "user_type": "既存社員", "personality": {"type_name": "特殊型（自由な発想で変化を楽しむ巻き込みタイプ / 規律性を内包する二面性）", "base_type": "特殊型", "t_scores": {"社交性": 49.9, "好奇心": 40.7, "不安耐性": 37.9, "着実性": 26.1}, "style": "特殊型（★社交性 49.9 / 好奇心 40.7 / ★不安耐性 37.9 / ★着実性 26.1）", "type_summary": "あなたの性格は、人を思いやる温かい感性を持ちながらも、組織の公平さや健全な秩序を大切に見守る【特殊型（調和・公正型）】の傾向にあります。", "individual_uniqueness": "BaseTypeである巻き込みタイプでありながら、着実性や不安耐性が控えめで繊細な感受性を持っています。その分、他者の痛みやチーム内の理不尽さに誰よりも敏感に気づくことができ、職場のチームにおいては「公平で温かい関係性を守る優しい良心・バランサー」として大切にされます。", "strengths": [{"label": "誰に対しても公平で偏りのない接し方", "text": "相手の立場や肩書に左右されず、常にフェアで誠実な態度で接し、周囲に安心感を与えられます。"}, {"label": "相手の気持ちに寄り添う繊細な共感力", "text": "困っている仲間や孤立している人の変化にいち早く気づき、優しく声をかけて受け止められます。"}, {"label": "感謝を忘れず調和を守る謙虚な姿勢", "text": "周囲の支えに対する感謝を常に言葉にし、チーム内の不協和音を自然と和らげる調整力を発揮します。"}], "future_orientation": [{"label": "タスクの細分化と小さな一歩の積み重ね", "text": "複雑な業務に一度に取り組むと圧倒されやすいため、作業を小さく分けて「今日やること」に集中するとスムーズに進みます。"}, {"label": "無理をせず周囲を頼るヘルプシーキング", "text": "プレッシャーを感じた時は一人で抱え込まず、信頼できる先輩や同僚に早めに相談する習慣が安心を生みます。"}], "ideal_environments": [{"label": "理不尽な競争がなく心理的安心感に満ちたチーム", "text": "足の引っ張り合いや威圧的なコミュニケーションのない、穏やかで誰もが安心できる温かい人間関係の中で力を発揮します。"}, {"label": "手順が明確で無理なプレッシャーのない業務環境", "text": "過剰なノルマや急激な混乱を避け、一つひとつの業務を落ち着いて着実にこなせる環境が合っています。"}, {"label": "困った時に親身に寄り添ってくれるメンターがいる体制", "text": "何かあった時にいつでも相談できる優しい先輩やメンターがいる組織で、自信を持って伸び伸びと成長できます。"}]}, "values": {"top": ["秩序", "人の尊重", "感謝", "公平"], "high": ["誠実", "丁寧さ"], "culture_coords": {"x": 45, "y": -38}, "culture_type": "⚖️ 社会性・倫理 × 🛡️ 規律タイプ（秩序・公平・人の尊重）", "quadrant": "右下（人・関係重視 × 安定・規律）", "value_summary": "あなたのバリューの傾向は、【人の尊重】と【公平】を最優先し、感謝の心を忘れずに全員が気持ちよく働ける秩序を重んじる【人間尊重・公正秩序志向】にあります。", "core_value": "あなたにとって大切なのは、人を深く尊重し感謝の心を持ちながらも、誰もが理不尽な思いをしない『公平で美しい秩序』を守ること。優しさとルールを高い次元で両立させるその姿勢は、組織が健全に成長するための最高の要石となります。そんなあなたが力を発揮しやすい会社の特徴は、次のとおりです。", "ideal_environments": [{"label": "透明性が高くフェアな評価基準を持つ企業", "text": "属人的な好き嫌いや忖度ではなく、行動基準と成果がオープンで誰もが納得できる公正なカルチャーを持つ企業がベストマッチです。"}, {"label": "お互いの尊厳を守りハラスメントのない健全な組織", "text": "権力勾配による理不尽を排除し、一人ひとりの人権と尊厳を徹底して守る、クリーンでモラルの高い組織風土が合っています。"}, {"label": "感謝と思いやりが循環する成熟したチーム", "text": "冷徹なルール至上主義でも馴れ合いでもなく、お互いへの感謝と健全なマナーが心地よく両立した職場で最大の力を発揮します。"}]}, "match_analysis": {"fit_type": "同質（人間性）× 補完（公正な規律設計）", "culture_synergy": "企業の温かさに深く共鳴しながら、曖昧になりがちな関係性に健全なルールと公平性をもたらす組織の支柱", "distance": 49.0}, "company_view": {"headline": "温かい人間愛と揺るぎない公平性を両立し、誰もが気持ちよく働ける秩序を築く組織の支柱", "value_resonance": {"overlap": "『人の尊重』『感謝』『公平』『秩序』", "explanation": "貴社の中核である『人の尊重』と『感謝』を深く理解しながら、『公平』と『秩序』を大切にしています。優しさや思いやりが単なる甘えや曖昧さに流れないよう、誰もが納得できるフェアで健全なルールや仕組みを整えられる希有な価値観を持っています。"}, "team_affinity": {"style": "特殊型（★社交性 49.9 / 好奇心 40.7 / ★不安耐性 37.9 / ★着実性 26.1）", "explanation": "明るく親しみやすいキャラクターで場を和ませつつ、業務や対人関係における「不公平感」や「ルールの不備」にいち早く気づくバランス感覚を持っています。温かさと規律を高い次元で両立させたい貴社の成長フェーズに不可欠な存在です。"}, "management_tips": {"onboarding": "制度づくりやチームの運用フロー改善など、「みんなが納得して動ける仕組みづくり」に関わらせると手腕を発揮します。", "questions": [{"q": "「チームの中で『公平さ』や『健全なルール』を守るために、自分が貢献した経験はありますか？」", "focus": "温かさと規律の調和力を確かめます。"}, {"q": "「感謝や相手の尊重を忘れずに、言いづらい正論や改善点を伝えるときに気をつけていることは？」", "focus": "『質の高い対話』の実践力を検証します。"}]}}, "student_view": {"headline": "人を思いやる温かさと誰もが納得できる公平性を両立し、健全な組織づくりに貢献できる場所", "culture_fit": {"overlap": "『人の尊重』『感謝』『公平』『秩序』", "explanation": "「お互いを敬うこと」と「フェアであること」を両立させたいあなたの願いは、同社のオープンでフラットな社風の中で正当に活かされます。不条理なルールに悩まされることなく働けます。"}, "workplace_fit": {"role": "温かさと公平な規律をつなぐ組織のバランサー", "explanation": "優しさが曖昧さに流れないよう、みんなが気持ちよく働ける健全なルールや仕組みを整える役割を担えます。組織が拡大していく中で、全員から頼られるキーパーソンになれます。"}, "growth_environment": {"tips": "透明性が高くフェアな評価を行うカルチャーです。運用の仕組み改善などに主体的に関わることができます。", "reverse_questions": [{"q": "「組織が拡大する中で、優しさや温かさと、健全なルール・公平性をどのように両立させていますか？」", "intent": "規律と温かさのバランスに対する会社のスタンスを確認する質問です。"}, {"q": "「業務フローや制度の改善において、現場の意見はどのように吸い上げられ反映されていますか？」", "intent": "公平な仕組みづくりに関われる余地があるかを知る質問です。"}]}}}]};
+    const company = portalData.company;
+    const users = portalData.users;
+
+    let currentUserId = 1;
+    let currentDiagSubTab = 'p';
+
+    // 初期化
+    window.addEventListener('DOMContentLoaded', () => {
+      // セレクターの選択肢を構築
+      const select = document.getElementById('user-select');
+      users.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.no;
+        opt.textContent = `No.${u.no} ${u.id}（${u.personality.base_type} / ${u.values.culture_type.split('（')[0]}）`;
+        select.appendChild(opt);
+      });
+
+      renderUser(1);
+    });
+
+    function onSelectUserChange(val) {
+      renderUser(parseInt(val));
+    }
+
+    function renderUser(no) {
+      currentUserId = no;
+      const u = users.find(x => x.no === no);
+      if (!u) return;
+
+      // ヘッダープロファイル
+      document.getElementById('profile-user-id').textContent = u.id;
+      document.getElementById('profile-user-attr').textContent = u.user_type;
+      document.getElementById('profile-cluster-badge').textContent = u.personality.base_type;
+      document.getElementById('profile-full-type').textContent = u.personality.type_name;
+      document.getElementById('badge-t-soc').textContent = u.personality.t_scores.社交性;
+      document.getElementById('badge-t-cur').textContent = u.personality.t_scores.好奇心;
+      document.getElementById('badge-t-str').textContent = u.personality.t_scores.不安耐性;
+      document.getElementById('badge-t-std').textContent = u.personality.t_scores.着実性;
+
+      // 1. カルチャーマップ
+      const mapUserPin = document.getElementById('map-user-pin');
+      mapUserPin.setAttribute('transform', `translate(${u.values.culture_coords.x}, ${-u.values.culture_coords.y})`);
+
+      const mapLine = document.getElementById('map-match-line');
+      mapLine.setAttribute('x1', u.values.culture_coords.x);
+      mapLine.setAttribute('y1', -u.values.culture_coords.y);
+      mapLine.setAttribute('x2', company.culture_coords.x);
+      mapLine.setAttribute('y2', -company.culture_coords.y);
+
+      document.getElementById('map-coords-badge').textContent = `(X: ${u.values.culture_coords.x}, Y: ${u.values.culture_coords.y})`;
+      document.getElementById('map-type-title').textContent = u.values.culture_type;
+      document.getElementById('map-quadrant-desc').textContent = u.values.quadrant;
+      document.getElementById('map-fit-badge').textContent = u.match_analysis.fit_type;
+      document.getElementById('map-distance-val').textContent = u.match_analysis.distance;
+      document.getElementById('map-synergy-text').textContent = u.match_analysis.culture_synergy;
+
+      const topValContainer = document.getElementById('map-top-values');
+      topValContainer.innerHTML = u.values.top.map(v => `
+        <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+          ${v}
+        </span>
+      `).join('');
+
+      // 2. 個人診断結果
+      document.getElementById('diag-p-type-name').textContent = u.personality.type_name;
+      document.getElementById('diag-p-summary').textContent = u.personality.type_summary;
+      document.getElementById('diag-p-unique').textContent = u.personality.individual_uniqueness;
+
+      // 強み
+      const pStrengths = document.getElementById('diag-p-strengths');
+      pStrengths.innerHTML = u.personality.strengths.map(s => `
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="text-xs font-bold text-slate-800">${s.label}</div>
+          <p class="text-xs text-slate-600 mt-1 leading-relaxed">${s.text}</p>
+        </div>
+      `).join('');
+
+      // 向き合い方
+      const pFuture = document.getElementById('diag-p-future');
+      pFuture.innerHTML = u.personality.future_orientation.map(f => `
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="text-xs font-bold text-slate-800">${f.label}</div>
+          <p class="text-xs text-slate-600 mt-1 leading-relaxed">${f.text}</p>
+        </div>
+      `).join('');
+
+      // 環境
+      const pEnv = document.getElementById('diag-p-env');
+      pEnv.innerHTML = u.personality.ideal_environments.map(e => `
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="text-xs font-bold text-slate-800">${e.label}</div>
+          <p class="text-xs text-slate-600 mt-1 leading-relaxed">${e.text}</p>
+        </div>
+      `).join('');
+
+      // バリュー
+      document.getElementById('diag-v-summary').textContent = u.values.value_summary;
+      document.getElementById('diag-v-core-value').textContent = u.values.core_value;
+
+      const vTop4 = document.getElementById('diag-v-top4-grid');
+      vTop4.innerHTML = u.values.top.map((v, i) => `
+        <div class="p-3 rounded-xl border border-indigo-200 bg-indigo-50/40 text-center">
+          <span class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">Rank ${i+1}</span>
+          <span class="font-extrabold text-sm text-slate-800 mt-0.5 block">${v}</span>
+        </div>
+      `).join('');
+
+      const vEnv = document.getElementById('diag-v-env');
+      vEnv.innerHTML = u.values.ideal_environments.map(e => `
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="text-xs font-bold text-slate-800">${e.label}</div>
+          <p class="text-xs text-slate-600 mt-1 leading-relaxed">${e.text}</p>
+        </div>
+      `).join('');
+
+      // 3. 企業マイページ推薦
+      document.getElementById('comp-headline').textContent = u.company_view.headline;
+      document.getElementById('comp-overlap-val').textContent = u.company_view.value_resonance.overlap;
+      document.getElementById('comp-overlap-exp').textContent = u.company_view.value_resonance.explanation;
+      document.getElementById('comp-style-text').textContent = u.company_view.team_affinity.style;
+      document.getElementById('comp-team-exp').textContent = u.company_view.team_affinity.explanation;
+      document.getElementById('comp-onboarding').textContent = u.company_view.management_tips.onboarding;
+
+      const compQuestions = document.getElementById('comp-questions-list');
+      compQuestions.innerHTML = u.company_view.management_tips.questions.map((q, idx) => `
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+          <div class="text-xs font-bold text-slate-800 font-mono">${idx+1}. ${q.q}</div>
+          <div class="text-[10px] text-slate-500">意図: ${q.focus}</div>
+        </div>
+      `).join('');
+
+      // 4. 学生マイページ企業マッチ
+      document.getElementById('stud-headline').textContent = u.student_view.headline;
+      document.getElementById('stud-overlap-val').textContent = u.student_view.culture_fit.overlap;
+      document.getElementById('stud-culture-exp').textContent = u.student_view.culture_fit.explanation;
+      document.getElementById('stud-role-title').textContent = u.student_view.workplace_fit.role;
+      document.getElementById('stud-workplace-exp').textContent = u.student_view.workplace_fit.explanation;
+      document.getElementById('stud-growth-tips').textContent = u.student_view.growth_environment.tips;
+
+      const studQuestions = document.getElementById('stud-reverse-questions');
+      studQuestions.innerHTML = u.student_view.growth_environment.reverse_questions.map((q, idx) => `
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+          <div class="text-xs font-bold text-slate-800 font-mono">${idx+1}. ${q.q}</div>
+          <div class="text-[10px] text-slate-500">狙い: ${q.intent}</div>
+        </div>
+      `).join('');
+    }
+
+    function switchView(viewName) {
+      document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden'));
+      document.querySelectorAll('.view-tab-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white', 'shadow-sm', 'shadow-blue-500/20');
+        btn.classList.add('bg-slate-100', 'text-slate-600');
+      });
+
+      const targetSec = document.getElementById(`view-${viewName}`);
+      const targetBtn = document.getElementById(`tab-btn-${viewName}`);
+
+      if (targetSec && targetBtn) {
+        targetSec.classList.remove('hidden');
+        targetBtn.classList.remove('bg-slate-100', 'text-slate-600');
+        targetBtn.classList.add('bg-blue-600', 'text-white', 'shadow-sm', 'shadow-blue-500/20');
+      }
+    }
+
+    function switchDiagSubTab(tab) {
+      const pSec = document.getElementById('diag-sub-p');
+      const vSec = document.getElementById('diag-sub-v');
+      const pBtn = document.getElementById('subtab-btn-p');
+      const vBtn = document.getElementById('subtab-btn-v');
+
+      if (tab === 'p') {
+        pSec.classList.remove('hidden');
+        vSec.classList.add('hidden');
+        pBtn.classList.add('border-blue-600', 'text-blue-600');
+        pBtn.classList.remove('border-transparent', 'text-slate-400');
+        vBtn.classList.remove('border-blue-600', 'text-blue-600');
+        vBtn.classList.add('border-transparent', 'text-slate-400');
+      } else {
+        vSec.classList.remove('hidden');
+        pSec.classList.add('hidden');
+        vBtn.classList.add('border-blue-600', 'text-blue-600');
+        vBtn.classList.remove('border-transparent', 'text-slate-400');
+        pBtn.classList.remove('border-blue-600', 'text-blue-600');
+        pBtn.classList.add('border-transparent', 'text-slate-400');
+      }
+    }
+  </script>
+</body>
+</html>
