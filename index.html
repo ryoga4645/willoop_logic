@@ -141,29 +141,69 @@
         <div class="relative w-full aspect-square max-h-[520px] bg-slate-50/70 rounded-2xl border border-slate-200 overflow-hidden">
           <svg viewBox="-105 -105 210 210" class="w-full h-full select-none">
             
-            <!-- 4象限ゾーンカラー -->
-            <rect x="-105" y="-105" width="105" height="105" fill="#ea580c" fill-opacity="0.05" />
-            <rect x="0" y="-105" width="105" height="105" fill="#8b5cf6" fill-opacity="0.05" />
-            <rect x="0" y="0" width="105" height="105" fill="#10b981" fill-opacity="0.05" />
-            <rect x="-105" y="0" width="105" height="105" fill="#64748b" fill-opacity="0.04" />
+            <!-- 背景ガイド円 -->
+            <circle cx="0" cy="0" r="45" fill="none" stroke="#e2e8f0" stroke-width="0.8" stroke-dasharray="2,2" />
+            <circle cx="0" cy="0" r="85" fill="none" stroke="#e2e8f0" stroke-width="0.8" stroke-dasharray="2,2" />
 
             <!-- 十字ガイド軸 -->
             <line x1="-100" y1="0" x2="100" y2="0" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="3,3"/>
             <line x1="0" y1="-100" x2="0" y2="100" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="3,3"/>
 
-            <!-- 象限背景ラベル -->
-            <g opacity="0.65">
-              <text x="-52" y="-55" text-anchor="middle" font-size="7" font-weight="bold" fill="#ea580c">🚀 革新・成果</text>
-              <text x="-52" y="-46" text-anchor="middle" font-size="4.5" fill="#64748b">変革・スピード・突破</text>
-              
-              <text x="52" y="-55" text-anchor="middle" font-size="7" font-weight="bold" fill="#8b5cf6">🦅 自律・柔軟</text>
-              <text x="52" y="-46" text-anchor="middle" font-size="4.5" fill="#64748b">自由・本質・心理的安全</text>
+            <!-- 7大志向性クラスタゾーン ＋ 中央調和ゾーン -->
+            <!-- 1. 🚀 革新・変革ゾーン -->
+            <g>
+              <circle cx="-25" cy="-75" r="24" fill="#ea580c" fill-opacity="0.08" stroke="#ea580c" stroke-width="0.8" stroke-dasharray="2,2"/>
+              <text x="-25" y="-76" text-anchor="middle" font-size="5.8" font-weight="bold" fill="#ea580c">🚀 革新・変革</text>
+              <text x="-25" y="-69" text-anchor="middle" font-size="3.6" fill="#64748b">変革/独創性/夢中</text>
+            </g>
 
-              <text x="52" y="48" text-anchor="middle" font-size="7" font-weight="bold" fill="#10b981">🤝 協調・共感</text>
-              <text x="52" y="57" text-anchor="middle" font-size="4.5" fill="#64748b">感謝・丁寧・人の尊重</text>
+            <!-- 2. 🎯 達成・成果ゾーン -->
+            <g>
+              <circle cx="-68" cy="-28" r="23" fill="#dc2626" fill-opacity="0.08" stroke="#dc2626" stroke-width="0.8" stroke-dasharray="2,2"/>
+              <text x="-68" y="-29" text-anchor="middle" font-size="5.8" font-weight="bold" fill="#dc2626">🎯 達成・成果</text>
+              <text x="-68" y="-22" text-anchor="middle" font-size="3.6" fill="#64748b">目標達成/スピード/効率</text>
+            </g>
 
-              <text x="-52" y="48" text-anchor="middle" font-size="7" font-weight="bold" fill="#475569">🛡️ 安定・品質</text>
-              <text x="-52" y="57" text-anchor="middle" font-size="4.5" fill="#64748b">計画性・秩序・確実性</text>
+            <!-- 3. 🦅 自律・柔軟ゾーン -->
+            <g>
+              <circle cx="18" cy="-65" r="23" fill="#9333ea" fill-opacity="0.08" stroke="#9333ea" stroke-width="0.8" stroke-dasharray="2,2"/>
+              <text x="18" y="-66" text-anchor="middle" font-size="5.8" font-weight="bold" fill="#9333ea">🦅 自律・柔軟</text>
+              <text x="18" y="-59" text-anchor="middle" font-size="3.6" fill="#64748b">自由/本質/広い視野</text>
+            </g>
+
+            <!-- 4. 🌱 ウェルビーイングゾーン -->
+            <g>
+              <circle cx="55" cy="-35" r="24" fill="#0d9488" fill-opacity="0.08" stroke="#0d9488" stroke-width="0.8" stroke-dasharray="2,2"/>
+              <text x="55" y="-36" text-anchor="middle" font-size="5.8" font-weight="bold" fill="#0d9488">🌱 ウェルビーイング</text>
+              <text x="55" y="-29" text-anchor="middle" font-size="3.6" fill="#64748b">心身充足/働きやすさ</text>
+            </g>
+
+            <!-- 5. 🤝 協調・関係ゾーン -->
+            <g>
+              <circle cx="68" cy="5" r="23" fill="#2563eb" fill-opacity="0.08" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="2,2"/>
+              <text x="68" y="4" text-anchor="middle" font-size="5.8" font-weight="bold" fill="#2563eb">🤝 協調・関係</text>
+              <text x="68" y="11" text-anchor="middle" font-size="3.6" fill="#64748b">人の尊重/感謝/対話</text>
+            </g>
+
+            <!-- 6. ⚖️ 社会性・倫理ゾーン -->
+            <g>
+              <circle cx="50" cy="62" r="23" fill="#475569" fill-opacity="0.08" stroke="#475569" stroke-width="0.8" stroke-dasharray="2,2"/>
+              <text x="50" y="61" text-anchor="middle" font-size="5.8" font-weight="bold" fill="#475569">⚖️ 社会性・倫理</text>
+              <text x="50" y="68" text-anchor="middle" font-size="3.6" fill="#64748b">社会貢献/公平/責任</text>
+            </g>
+
+            <!-- 7. 🛡️ 安定・規律・品質ゾーン -->
+            <g>
+              <circle cx="-45" cy="52" r="25" fill="#059669" fill-opacity="0.08" stroke="#059669" stroke-width="0.8" stroke-dasharray="2,2"/>
+              <text x="-45" y="51" text-anchor="middle" font-size="5.8" font-weight="bold" fill="#059669">🛡️ 安定・規律・品質</text>
+              <text x="-45" y="58" text-anchor="middle" font-size="3.6" fill="#64748b">計画性/秩序/丁寧/誠実</text>
+            </g>
+
+            <!-- 8. 総合調和（バランス型）ゾーン -->
+            <g>
+              <circle cx="0" cy="0" r="16" fill="#64748b" fill-opacity="0.06" stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="2,2"/>
+              <text x="0" y="1" text-anchor="middle" font-size="4.2" font-weight="bold" fill="#64748b">⚖️ 総合調和</text>
+              <text x="0" y="6" text-anchor="middle" font-size="3.2" fill="#94a3b8">バランス型</text>
             </g>
 
             <!-- 軸先端ラベル -->
