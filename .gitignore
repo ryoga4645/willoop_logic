@@ -1,0 +1,25 @@
+# Google API credentials & tokens (CRITICAL SECURITY)
+goog_api/
+token.json
+client_secret*.json
+
+# Sensitive survey response data (Personal Data)
+*Willoop 診断回答データ*.csv
+*311名*.csv
+
+# Backup files
+*.bak
+
+# Environment & Secrets
+.env
+.env.*
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
